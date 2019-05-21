@@ -10,11 +10,12 @@ service KeyValueStore {
 // You'll likely need to define more specific return codes than these!
 enum ReturnCode {
     SUCCESS = 0;
+    // GET return code
     FAILURE = 1;
-    // PUT return code
-    FAILURE_DEMOTED = 2;
+    // PUT return codes
     FAILURE_EXPIRED = 3;
-    SUCCESS_SEQNO = 4;
+    FAILURE_QUORUM = 4;
+    SUCCESS_SEQNO = 5;
 }
 
 message GetRequest {
@@ -24,19 +25,16 @@ message GetRequest {
 message GetResponse {
     string value = 1;
     ReturnCode ret = 2;
-    string leaderHint = 3;
 }
 
 message PutRequest {
     string key = 1;
     string value = 2;
-    int32 from = 3;
-    string clientId = 4;
-    int32 seqNo = 5;
+    string clientId = 3;
+    int32 seqNo = 4;
 }
 
 message PutResponse {
     ReturnCode ret = 1;
-    string leaderHint = 2;
 }
 

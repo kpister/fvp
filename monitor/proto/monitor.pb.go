@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -22,14 +24,299 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
+type ReturnCode int32
+
+const (
+	ReturnCode_SUCCESS ReturnCode = 0
+	ReturnCode_FAILURE ReturnCode = 1
+)
+
+var ReturnCode_name = map[int32]string{
+	0: "SUCCESS",
+	1: "FAILURE",
+}
+
+var ReturnCode_value = map[string]int32{
+	"SUCCESS": 0,
+	"FAILURE": 1,
+}
+
+func (x ReturnCode) String() string {
+	return proto.EnumName(ReturnCode_name, int32(x))
+}
+
+func (ReturnCode) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_44174b7b2a306b71, []int{0}
+}
+
+type ConnMap struct {
+	Entries              []*ConnMap_MapEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
+	XXX_unrecognized     []byte              `json:"-"`
+	XXX_sizecache        int32               `json:"-"`
+}
+
+func (m *ConnMap) Reset()         { *m = ConnMap{} }
+func (m *ConnMap) String() string { return proto.CompactTextString(m) }
+func (*ConnMap) ProtoMessage()    {}
+func (*ConnMap) Descriptor() ([]byte, []int) {
+	return fileDescriptor_44174b7b2a306b71, []int{0}
+}
+
+func (m *ConnMap) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ConnMap.Unmarshal(m, b)
+}
+func (m *ConnMap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ConnMap.Marshal(b, m, deterministic)
+}
+func (m *ConnMap) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConnMap.Merge(m, src)
+}
+func (m *ConnMap) XXX_Size() int {
+	return xxx_messageInfo_ConnMap.Size(m)
+}
+func (m *ConnMap) XXX_DiscardUnknown() {
+	xxx_messageInfo_ConnMap.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ConnMap proto.InternalMessageInfo
+
+func (m *ConnMap) GetEntries() []*ConnMap_MapEntry {
+	if m != nil {
+		return m.Entries
+	}
+	return nil
+}
+
+type ConnMap_MapEntry struct {
+	Ip                   string   `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
+	Conn                 bool     `protobuf:"varint,2,opt,name=conn,proto3" json:"conn,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ConnMap_MapEntry) Reset()         { *m = ConnMap_MapEntry{} }
+func (m *ConnMap_MapEntry) String() string { return proto.CompactTextString(m) }
+func (*ConnMap_MapEntry) ProtoMessage()    {}
+func (*ConnMap_MapEntry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_44174b7b2a306b71, []int{0, 0}
+}
+
+func (m *ConnMap_MapEntry) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ConnMap_MapEntry.Unmarshal(m, b)
+}
+func (m *ConnMap_MapEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ConnMap_MapEntry.Marshal(b, m, deterministic)
+}
+func (m *ConnMap_MapEntry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ConnMap_MapEntry.Merge(m, src)
+}
+func (m *ConnMap_MapEntry) XXX_Size() int {
+	return xxx_messageInfo_ConnMap_MapEntry.Size(m)
+}
+func (m *ConnMap_MapEntry) XXX_DiscardUnknown() {
+	xxx_messageInfo_ConnMap_MapEntry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ConnMap_MapEntry proto.InternalMessageInfo
+
+func (m *ConnMap_MapEntry) GetIp() string {
+	if m != nil {
+		return m.Ip
+	}
+	return ""
+}
+
+func (m *ConnMap_MapEntry) GetConn() bool {
+	if m != nil {
+		return m.Conn
+	}
+	return false
+}
+
+type EmptyMessage struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *EmptyMessage) Reset()         { *m = EmptyMessage{} }
+func (m *EmptyMessage) String() string { return proto.CompactTextString(m) }
+func (*EmptyMessage) ProtoMessage()    {}
+func (*EmptyMessage) Descriptor() ([]byte, []int) {
+	return fileDescriptor_44174b7b2a306b71, []int{1}
+}
+
+func (m *EmptyMessage) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EmptyMessage.Unmarshal(m, b)
+}
+func (m *EmptyMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EmptyMessage.Marshal(b, m, deterministic)
+}
+func (m *EmptyMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EmptyMessage.Merge(m, src)
+}
+func (m *EmptyMessage) XXX_Size() int {
+	return xxx_messageInfo_EmptyMessage.Size(m)
+}
+func (m *EmptyMessage) XXX_DiscardUnknown() {
+	xxx_messageInfo_EmptyMessage.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EmptyMessage proto.InternalMessageInfo
+
+type BoolMessage struct {
+	Flag                 bool     `protobuf:"varint,1,opt,name=flag,proto3" json:"flag,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *BoolMessage) Reset()         { *m = BoolMessage{} }
+func (m *BoolMessage) String() string { return proto.CompactTextString(m) }
+func (*BoolMessage) ProtoMessage()    {}
+func (*BoolMessage) Descriptor() ([]byte, []int) {
+	return fileDescriptor_44174b7b2a306b71, []int{2}
+}
+
+func (m *BoolMessage) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_BoolMessage.Unmarshal(m, b)
+}
+func (m *BoolMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_BoolMessage.Marshal(b, m, deterministic)
+}
+func (m *BoolMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BoolMessage.Merge(m, src)
+}
+func (m *BoolMessage) XXX_Size() int {
+	return xxx_messageInfo_BoolMessage.Size(m)
+}
+func (m *BoolMessage) XXX_DiscardUnknown() {
+	xxx_messageInfo_BoolMessage.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BoolMessage proto.InternalMessageInfo
+
+func (m *BoolMessage) GetFlag() bool {
+	if m != nil {
+		return m.Flag
+	}
+	return false
+}
+
+type ReturnMessage struct {
+	Rc                   ReturnCode `protobuf:"varint,1,opt,name=rc,proto3,enum=monitor.ReturnCode" json:"rc,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
+}
+
+func (m *ReturnMessage) Reset()         { *m = ReturnMessage{} }
+func (m *ReturnMessage) String() string { return proto.CompactTextString(m) }
+func (*ReturnMessage) ProtoMessage()    {}
+func (*ReturnMessage) Descriptor() ([]byte, []int) {
+	return fileDescriptor_44174b7b2a306b71, []int{3}
+}
+
+func (m *ReturnMessage) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReturnMessage.Unmarshal(m, b)
+}
+func (m *ReturnMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReturnMessage.Marshal(b, m, deterministic)
+}
+func (m *ReturnMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReturnMessage.Merge(m, src)
+}
+func (m *ReturnMessage) XXX_Size() int {
+	return xxx_messageInfo_ReturnMessage.Size(m)
+}
+func (m *ReturnMessage) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReturnMessage.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReturnMessage proto.InternalMessageInfo
+
+func (m *ReturnMessage) GetRc() ReturnCode {
+	if m != nil {
+		return m.Rc
+	}
+	return ReturnCode_SUCCESS
+}
+
+type ServerState struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ServerState) Reset()         { *m = ServerState{} }
+func (m *ServerState) String() string { return proto.CompactTextString(m) }
+func (*ServerState) ProtoMessage()    {}
+func (*ServerState) Descriptor() ([]byte, []int) {
+	return fileDescriptor_44174b7b2a306b71, []int{4}
+}
+
+func (m *ServerState) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ServerState.Unmarshal(m, b)
+}
+func (m *ServerState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ServerState.Marshal(b, m, deterministic)
+}
+func (m *ServerState) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ServerState.Merge(m, src)
+}
+func (m *ServerState) XXX_Size() int {
+	return xxx_messageInfo_ServerState.Size(m)
+}
+func (m *ServerState) XXX_DiscardUnknown() {
+	xxx_messageInfo_ServerState.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ServerState proto.InternalMessageInfo
+
+func (m *ServerState) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func init() {
+	proto.RegisterEnum("monitor.ReturnCode", ReturnCode_name, ReturnCode_value)
+	proto.RegisterType((*ConnMap)(nil), "monitor.ConnMap")
+	proto.RegisterType((*ConnMap_MapEntry)(nil), "monitor.ConnMap.MapEntry")
+	proto.RegisterType((*EmptyMessage)(nil), "monitor.EmptyMessage")
+	proto.RegisterType((*BoolMessage)(nil), "monitor.BoolMessage")
+	proto.RegisterType((*ReturnMessage)(nil), "monitor.ReturnMessage")
+	proto.RegisterType((*ServerState)(nil), "monitor.ServerState")
+}
+
 func init() { proto.RegisterFile("monitor.proto", fileDescriptor_44174b7b2a306b71) }
 
 var fileDescriptor_44174b7b2a306b71 = []byte{
-	// 54 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xcd, 0xcd, 0xcf, 0xcb,
-	0x2c, 0xc9, 0x2f, 0xd2, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x87, 0x72, 0x8d, 0x38, 0xb9,
-	0xd8, 0x7d, 0x21, 0xcc, 0x24, 0x36, 0xb0, 0x94, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff, 0x1e, 0xec,
-	0x7e, 0xf1, 0x2b, 0x00, 0x00, 0x00,
+	// 313 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x91, 0x5f, 0x4b, 0xc3, 0x30,
+	0x14, 0xc5, 0x97, 0x2a, 0xa6, 0xde, 0xba, 0x31, 0xe2, 0x1f, 0xe6, 0x40, 0x98, 0x15, 0x64, 0xf8,
+	0xd0, 0x87, 0xcd, 0x17, 0xf1, 0x49, 0x4b, 0x15, 0xc1, 0xbe, 0x24, 0xec, 0x03, 0xc4, 0x35, 0x8e,
+	0x42, 0x97, 0x84, 0x2c, 0x0e, 0xf6, 0xdd, 0xfc, 0x70, 0xb2, 0xac, 0xe9, 0xca, 0xc0, 0xb7, 0x7b,
+	0x2e, 0xbf, 0xd3, 0x7b, 0x7a, 0x02, 0xdd, 0xa5, 0x92, 0xa5, 0x55, 0x26, 0xd1, 0x46, 0x59, 0x45,
+	0x70, 0x2d, 0x63, 0x09, 0x38, 0x55, 0x52, 0xe6, 0x5c, 0x93, 0x29, 0x60, 0x21, 0xad, 0x29, 0xc5,
+	0x6a, 0x80, 0x46, 0x47, 0xe3, 0x68, 0x72, 0x9d, 0x78, 0x53, 0x8d, 0x24, 0x39, 0xd7, 0x99, 0xb4,
+	0x66, 0x43, 0x3d, 0x39, 0x4c, 0x20, 0xf4, 0x4b, 0xd2, 0x83, 0xa0, 0xd4, 0x03, 0x34, 0x42, 0xe3,
+	0x53, 0x1a, 0x94, 0x9a, 0x10, 0x38, 0x9e, 0x2b, 0x29, 0x07, 0xc1, 0x08, 0x8d, 0x43, 0xea, 0xe6,
+	0xb8, 0x07, 0x67, 0xd9, 0x52, 0xdb, 0x4d, 0x2e, 0x56, 0x2b, 0xbe, 0x10, 0xf1, 0x2d, 0x44, 0xaf,
+	0x4a, 0x55, 0xb5, 0xdc, 0x5a, 0xbe, 0x2b, 0xbe, 0x70, 0x1f, 0x09, 0xa9, 0x9b, 0xe3, 0x47, 0xe8,
+	0x52, 0x61, 0x7f, 0x8c, 0xf4, 0xd0, 0x1d, 0x04, 0x66, 0xee, 0x90, 0xde, 0xe4, 0xbc, 0xc9, 0xb8,
+	0x63, 0x52, 0x55, 0x08, 0x1a, 0x98, 0x79, 0x7c, 0x03, 0x11, 0x13, 0x66, 0x2d, 0x0c, 0xb3, 0xdc,
+	0x0a, 0x97, 0xad, 0x68, 0xb2, 0x15, 0x0f, 0xf7, 0x00, 0x7b, 0x03, 0x89, 0x00, 0xb3, 0x59, 0x9a,
+	0x66, 0x8c, 0xf5, 0x3b, 0x5b, 0xf1, 0xf6, 0xf2, 0xf1, 0x39, 0xa3, 0x59, 0x1f, 0x4d, 0x7e, 0x11,
+	0xe0, 0x7c, 0x77, 0x81, 0x3c, 0x43, 0x77, 0xa6, 0x2b, 0xc5, 0x0b, 0xdf, 0x58, 0xff, 0xb0, 0xa0,
+	0xe1, 0xd5, 0x41, 0x1c, 0xff, 0x9b, 0x1d, 0xf2, 0x04, 0xe1, 0xbb, 0xb0, 0xbb, 0x30, 0x97, 0x0d,
+	0xd5, 0xee, 0x62, 0x78, 0xd1, 0xac, 0x5b, 0xc9, 0x9d, 0x15, 0x33, 0x61, 0xb3, 0x75, 0x59, 0x91,
+	0x3d, 0xd2, 0x6a, 0xed, 0xff, 0xab, 0x5f, 0x27, 0xee, 0xb9, 0xa7, 0x7f, 0x01, 0x00, 0x00, 0xff,
+	0xff, 0xa2, 0x84, 0xb8, 0x4c, 0xff, 0x01, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -44,6 +331,9 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MonitorClient interface {
+	UploadConnMap(ctx context.Context, in *ConnMap, opts ...grpc.CallOption) (*ReturnMessage, error)
+	GetState(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*ServerState, error)
+	SetEvil(ctx context.Context, in *BoolMessage, opts ...grpc.CallOption) (*ReturnMessage, error)
 }
 
 type monitorClient struct {
@@ -54,22 +344,129 @@ func NewMonitorClient(cc *grpc.ClientConn) MonitorClient {
 	return &monitorClient{cc}
 }
 
+func (c *monitorClient) UploadConnMap(ctx context.Context, in *ConnMap, opts ...grpc.CallOption) (*ReturnMessage, error) {
+	out := new(ReturnMessage)
+	err := c.cc.Invoke(ctx, "/monitor.Monitor/UploadConnMap", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monitorClient) GetState(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*ServerState, error) {
+	out := new(ServerState)
+	err := c.cc.Invoke(ctx, "/monitor.Monitor/GetState", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monitorClient) SetEvil(ctx context.Context, in *BoolMessage, opts ...grpc.CallOption) (*ReturnMessage, error) {
+	out := new(ReturnMessage)
+	err := c.cc.Invoke(ctx, "/monitor.Monitor/SetEvil", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MonitorServer is the server API for Monitor service.
 type MonitorServer interface {
+	UploadConnMap(context.Context, *ConnMap) (*ReturnMessage, error)
+	GetState(context.Context, *EmptyMessage) (*ServerState, error)
+	SetEvil(context.Context, *BoolMessage) (*ReturnMessage, error)
 }
 
 // UnimplementedMonitorServer can be embedded to have forward compatible implementations.
 type UnimplementedMonitorServer struct {
 }
 
+func (*UnimplementedMonitorServer) UploadConnMap(ctx context.Context, req *ConnMap) (*ReturnMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UploadConnMap not implemented")
+}
+func (*UnimplementedMonitorServer) GetState(ctx context.Context, req *EmptyMessage) (*ServerState, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetState not implemented")
+}
+func (*UnimplementedMonitorServer) SetEvil(ctx context.Context, req *BoolMessage) (*ReturnMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetEvil not implemented")
+}
+
 func RegisterMonitorServer(s *grpc.Server, srv MonitorServer) {
 	s.RegisterService(&_Monitor_serviceDesc, srv)
+}
+
+func _Monitor_UploadConnMap_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnMap)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonitorServer).UploadConnMap(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/monitor.Monitor/UploadConnMap",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonitorServer).UploadConnMap(ctx, req.(*ConnMap))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Monitor_GetState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonitorServer).GetState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/monitor.Monitor/GetState",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonitorServer).GetState(ctx, req.(*EmptyMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Monitor_SetEvil_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BoolMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonitorServer).SetEvil(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/monitor.Monitor/SetEvil",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonitorServer).SetEvil(ctx, req.(*BoolMessage))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 var _Monitor_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "monitor.Monitor",
 	HandlerType: (*MonitorServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams:     []grpc.StreamDesc{},
-	Metadata:    "monitor.proto",
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "UploadConnMap",
+			Handler:    _Monitor_UploadConnMap_Handler,
+		},
+		{
+			MethodName: "GetState",
+			Handler:    _Monitor_GetState_Handler,
+		},
+		{
+			MethodName: "SetEvil",
+			Handler:    _Monitor_SetEvil_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "monitor.proto",
 }

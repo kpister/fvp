@@ -3,4 +3,34 @@ syntax = "proto3";
 package monitor;
 
 service Monitor {
+    rpc UploadConnMap(ConnMap) returns (ReturnMessage) {}
+    rpc GetState(EmptyMessage) returns (ServerState) {}
+    rpc SetEvil(BoolMessage) returns (ReturnMessage) {}
+}
+
+enum ReturnCode {
+    SUCCESS = 0;
+    FAILURE = 1;
+}
+
+message ConnMap {
+    message MapEntry {
+        string ip = 1;
+        bool conn = 2;
+    }
+    repeated MapEntry entries = 1;
+}
+
+message EmptyMessage {}
+
+message BoolMessage {
+    bool flag = 1;
+}
+
+message ReturnMessage {
+    ReturnCode rc = 1;
+}
+
+message ServerState {
+    string id = 1;
 }
