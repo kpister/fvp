@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -22,14 +24,163 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
+type SendMsg struct {
+	KnownStates          []*SendMsg_State `protobuf:"bytes,1,rep,name=knownStates,proto3" json:"knownStates,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
+	XXX_unrecognized     []byte           `json:"-"`
+	XXX_sizecache        int32            `json:"-"`
+}
+
+func (m *SendMsg) Reset()         { *m = SendMsg{} }
+func (m *SendMsg) String() string { return proto.CompactTextString(m) }
+func (*SendMsg) ProtoMessage()    {}
+func (*SendMsg) Descriptor() ([]byte, []int) {
+	return fileDescriptor_9e36e933c92912d0, []int{0}
+}
+
+func (m *SendMsg) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SendMsg.Unmarshal(m, b)
+}
+func (m *SendMsg) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SendMsg.Marshal(b, m, deterministic)
+}
+func (m *SendMsg) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SendMsg.Merge(m, src)
+}
+func (m *SendMsg) XXX_Size() int {
+	return xxx_messageInfo_SendMsg.Size(m)
+}
+func (m *SendMsg) XXX_DiscardUnknown() {
+	xxx_messageInfo_SendMsg.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SendMsg proto.InternalMessageInfo
+
+func (m *SendMsg) GetKnownStates() []*SendMsg_State {
+	if m != nil {
+		return m.KnownStates
+	}
+	return nil
+}
+
+type SendMsg_State struct {
+	Id                   string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	VotedFor             []string `protobuf:"bytes,2,rep,name=votedFor,proto3" json:"votedFor,omitempty"`
+	Accepted             []string `protobuf:"bytes,3,rep,name=accepted,proto3" json:"accepted,omitempty"`
+	Confirmed            []string `protobuf:"bytes,4,rep,name=confirmed,proto3" json:"confirmed,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SendMsg_State) Reset()         { *m = SendMsg_State{} }
+func (m *SendMsg_State) String() string { return proto.CompactTextString(m) }
+func (*SendMsg_State) ProtoMessage()    {}
+func (*SendMsg_State) Descriptor() ([]byte, []int) {
+	return fileDescriptor_9e36e933c92912d0, []int{0, 0}
+}
+
+func (m *SendMsg_State) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SendMsg_State.Unmarshal(m, b)
+}
+func (m *SendMsg_State) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SendMsg_State.Marshal(b, m, deterministic)
+}
+func (m *SendMsg_State) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SendMsg_State.Merge(m, src)
+}
+func (m *SendMsg_State) XXX_Size() int {
+	return xxx_messageInfo_SendMsg_State.Size(m)
+}
+func (m *SendMsg_State) XXX_DiscardUnknown() {
+	xxx_messageInfo_SendMsg_State.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SendMsg_State proto.InternalMessageInfo
+
+func (m *SendMsg_State) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *SendMsg_State) GetVotedFor() []string {
+	if m != nil {
+		return m.VotedFor
+	}
+	return nil
+}
+
+func (m *SendMsg_State) GetAccepted() []string {
+	if m != nil {
+		return m.Accepted
+	}
+	return nil
+}
+
+func (m *SendMsg_State) GetConfirmed() []string {
+	if m != nil {
+		return m.Confirmed
+	}
+	return nil
+}
+
+type EmptyMessage struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *EmptyMessage) Reset()         { *m = EmptyMessage{} }
+func (m *EmptyMessage) String() string { return proto.CompactTextString(m) }
+func (*EmptyMessage) ProtoMessage()    {}
+func (*EmptyMessage) Descriptor() ([]byte, []int) {
+	return fileDescriptor_9e36e933c92912d0, []int{1}
+}
+
+func (m *EmptyMessage) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_EmptyMessage.Unmarshal(m, b)
+}
+func (m *EmptyMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_EmptyMessage.Marshal(b, m, deterministic)
+}
+func (m *EmptyMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_EmptyMessage.Merge(m, src)
+}
+func (m *EmptyMessage) XXX_Size() int {
+	return xxx_messageInfo_EmptyMessage.Size(m)
+}
+func (m *EmptyMessage) XXX_DiscardUnknown() {
+	xxx_messageInfo_EmptyMessage.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_EmptyMessage proto.InternalMessageInfo
+
+func init() {
+	proto.RegisterType((*SendMsg)(nil), "fvp.SendMsg")
+	proto.RegisterType((*SendMsg_State)(nil), "fvp.SendMsg.State")
+	proto.RegisterType((*EmptyMessage)(nil), "fvp.EmptyMessage")
+}
+
 func init() { proto.RegisterFile("fvp.proto", fileDescriptor_9e36e933c92912d0) }
 
 var fileDescriptor_9e36e933c92912d0 = []byte{
-	// 55 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4c, 0x2b, 0x2b, 0xd0,
-	0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2b, 0x2b, 0x30, 0xe2, 0xe0, 0x62, 0x0b, 0x4e,
-	0x2d, 0x2a, 0x4b, 0x2d, 0x4a, 0x62, 0x03, 0x8b, 0x1a, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff, 0xe0,
-	0x47, 0x43, 0xdd, 0x22, 0x00, 0x00, 0x00,
+	// 211 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x4c, 0x90, 0xcd, 0x4e, 0x84, 0x30,
+	0x14, 0x85, 0x2d, 0x1d, 0x47, 0x7b, 0x67, 0x32, 0x89, 0x77, 0xd5, 0x10, 0x17, 0x84, 0x15, 0x6e,
+	0x58, 0xcc, 0xf8, 0x0a, 0xba, 0x63, 0x03, 0x4f, 0x80, 0xf4, 0x42, 0x88, 0xa1, 0x6d, 0xda, 0xa6,
+	0xc6, 0x97, 0xf2, 0x19, 0x0d, 0xf5, 0x67, 0xd8, 0xf5, 0xeb, 0x77, 0x4e, 0x72, 0x72, 0x41, 0x8c,
+	0xd1, 0xd6, 0xd6, 0x99, 0x60, 0x90, 0x8f, 0xd1, 0x96, 0x5f, 0x0c, 0xee, 0x3a, 0xd2, 0xaa, 0xf1,
+	0x13, 0x3e, 0xc3, 0xe1, 0x5d, 0x9b, 0x0f, 0xdd, 0x85, 0x3e, 0x90, 0x97, 0xac, 0xe0, 0xd5, 0xe1,
+	0x8c, 0xf5, 0xda, 0xf8, 0x8d, 0xd4, 0x49, 0xb5, 0xdb, 0x58, 0xbe, 0xc0, 0x6d, 0x7a, 0xe1, 0x09,
+	0xb2, 0x59, 0x49, 0x56, 0xb0, 0x4a, 0xb4, 0xd9, 0xac, 0x30, 0x87, 0xfb, 0x68, 0x02, 0xa9, 0x57,
+	0xe3, 0x64, 0x56, 0xf0, 0x4a, 0xb4, 0xff, 0xbc, 0xba, 0x7e, 0x18, 0xc8, 0x06, 0x52, 0x92, 0xff,
+	0xb8, 0x3f, 0xc6, 0x47, 0x10, 0x83, 0xd1, 0xe3, 0xec, 0x16, 0x52, 0x72, 0x97, 0xe4, 0xf5, 0xa3,
+	0x3c, 0xc1, 0xf1, 0x65, 0xb1, 0xe1, 0xb3, 0x21, 0xef, 0xfb, 0x89, 0xce, 0x17, 0xd8, 0x77, 0xe4,
+	0x22, 0x39, 0x7c, 0x82, 0xdd, 0x3a, 0x13, 0x8f, 0xdb, 0xc5, 0xf9, 0x43, 0xa2, 0x6d, 0xa5, 0xbc,
+	0x79, 0xdb, 0xa7, 0x0b, 0x5c, 0xbe, 0x03, 0x00, 0x00, 0xff, 0xff, 0x89, 0x98, 0xe0, 0x72, 0x0e,
+	0x01, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -44,6 +195,7 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ServerClient interface {
+	Send(ctx context.Context, in *SendMsg, opts ...grpc.CallOption) (*EmptyMessage, error)
 }
 
 type serverClient struct {
@@ -54,22 +206,59 @@ func NewServerClient(cc *grpc.ClientConn) ServerClient {
 	return &serverClient{cc}
 }
 
+func (c *serverClient) Send(ctx context.Context, in *SendMsg, opts ...grpc.CallOption) (*EmptyMessage, error) {
+	out := new(EmptyMessage)
+	err := c.cc.Invoke(ctx, "/fvp.Server/Send", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ServerServer is the server API for Server service.
 type ServerServer interface {
+	Send(context.Context, *SendMsg) (*EmptyMessage, error)
 }
 
 // UnimplementedServerServer can be embedded to have forward compatible implementations.
 type UnimplementedServerServer struct {
 }
 
+func (*UnimplementedServerServer) Send(ctx context.Context, req *SendMsg) (*EmptyMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Send not implemented")
+}
+
 func RegisterServerServer(s *grpc.Server, srv ServerServer) {
 	s.RegisterService(&_Server_serviceDesc, srv)
+}
+
+func _Server_Send_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendMsg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServerServer).Send(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fvp.Server/Send",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServerServer).Send(ctx, req.(*SendMsg))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 var _Server_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "fvp.Server",
 	HandlerType: (*ServerServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams:     []grpc.StreamDesc{},
-	Metadata:    "fvp.proto",
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Send",
+			Handler:    _Server_Send_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "fvp.proto",
 }

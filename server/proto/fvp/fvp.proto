@@ -3,4 +3,18 @@ syntax = "proto3";
 package fvp;
 
 service Server {
+    rpc Send(SendMsg) returns (EmptyMessage) {}
 }
+
+message SendMsg {
+    message State {
+        string id = 1;
+        repeated string votedFor = 2;
+        repeated string accepted = 3;
+        repeated string confirmed = 4;
+    }
+
+    repeated State knownStates = 1;
+}
+
+message EmptyMessage {}
