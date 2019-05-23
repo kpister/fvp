@@ -1,5 +1,5 @@
 
-all:	proto
+all:	proto build fmt
 
 proto:
 	protoc -I client/proto -I${GOPATH}/src --go_out=plugins=grpc:client/proto --go_out=server/proto/kvstore client/proto/kvstore.proto
