@@ -11,3 +11,7 @@ build:
 	go build -o server/server github.com/kpister/fvp/server
 	go build -o client/client github.com/kpister/fvp/client
 
+fmt:
+	go fmt github.com/kpister/fvp/monitor
+	go fmt github.com/kpister/fvp/client
+	go fmt github.com/kpister/fvp/server
