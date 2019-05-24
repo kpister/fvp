@@ -7,11 +7,17 @@ service Server {
 }
 
 message SendMsg {
+    message Slice {
+        repeated string nodes = 1;
+    }
+
     message State {
         string id = 1;
         repeated string votedFor = 2;
         repeated string accepted = 3;
         repeated string confirmed = 4;
+        repeated Slice quorumSlices = 5;
+        int32 counter = 6;
     }
 
     repeated State knownStates = 1;

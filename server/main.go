@@ -9,6 +9,9 @@ import (
 )
 
 type node struct {
+	nodesState        map[string]fvp.SendMsg_State
+	nodesQuorumSlices map[string][][]string
+	stateCounter      int32
 }
 
 func (n *node) broadcast() {
@@ -19,9 +22,54 @@ func (n *node) broadcast() {
 	*/
 }
 
+func (n *node) updateStates(states []*fvp.SendMsg_State) {
+	for _, state := range states {
+		if prevState, ok := n.nodesState[state.Id]; !ok {
+			n.nodesState[state.Id] = *state
+		} else if state.Counter > prevState.Counter {
+			n.nodesState[state.Id] = *state
+		}
+	}
+}
+
+func (n *node) updateQuorumSlices(states []*fvp.SendMsg_State) {
+	for _, state := range states {
+		n.nodesQuorumSlices[state.Id] = convertQuorumSlice(*state.QuorumSlices)
+	}
+}
+
+func convertQuorumSlices(qs []*fvp.SendMsg_Slice) [][]string {
+	return make([][]string, 0)
+}
+
+func (n *node) getStatements() {
+	statement2votedNodes := make(map[string][]string)
+	statement2acceptedNodes := make(map[string][]string)
+	for _, state := range n.nodesState {
+
+	}
+}
+
+func (n *node) getStatements() {
+	// return of a union of all voted for accepted statements from each state
+}
+
+// check if all blocking set members have voted for or accepted a statement
+func (n *node) checkBlocking() {
+	// for every statement
+	// for every n.quorumslices
+	// check if the statement exists in that quorum slice
+	// true for all
+	// blocking
+}
+
+// check if all quorum members have for or accepted a statement
+func (n *node) checkQuorum() {
+}
+
 func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, error) {
 
-	// check_blocking(in.votedfor)
+	n.check_blocking(in.KnownStates)
 	// check_quorum(in.votedfor)
 
 	// check_blocking(in.accepted)
@@ -47,7 +95,9 @@ func (n *node) Put(ctx context.Context, in *kv.PutRequest) (*kv.PutResponse, err
 }
 
 func createNode() *node {
-	return &node{}
+	return &node{
+		nodesState: make([]*fvp.SendMsg_State, 0),
+	}
 }
 
 func main() {
