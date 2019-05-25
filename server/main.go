@@ -9,6 +9,7 @@ import (
 )
 
 type node struct {
+	Id                string
 	nodesState        map[string]fvp.SendMsg_State
 	nodesQuorumSlices map[string][][]string
 	stateCounter      int32
@@ -34,7 +35,7 @@ func (n *node) updateStates(states []*fvp.SendMsg_State) {
 
 func (n *node) updateQuorumSlices(states []*fvp.SendMsg_State) {
 	for _, state := range states {
-		n.nodesQuorumSlices[state.Id] = convertQuorumSlice(*state.QuorumSlices)
+		n.nodesQuorumSlices[state.Id] = convertQuorumSlices(state.QuorumSlices)
 	}
 }
 
@@ -42,38 +43,63 @@ func convertQuorumSlices(qs []*fvp.SendMsg_Slice) [][]string {
 	return make([][]string, 0)
 }
 
-func (n *node) getStatements() {
-	statement2votedNodes := make(map[string][]string)
-	statement2acceptedNodes := make(map[string][]string)
-	for _, state := range n.nodesState {
-
+// get a map of a statement to a list of nodes that voted for/accepted it
+func (n *node) getStatements() (map[string][]string, map[string][]string) {
+	votedForStmt2Nodes := make(map[string][]string, 0)
+	acceptedStmt2Nodes := make(map[string][]string, 0)
+	for node, state := range n.nodesState {
+		for _, statement := range state.VotedFor {
+			votedForStmt2Nodes[statement] = append(votedForStmt2Nodes[statement], node)
+		}
+		for _, statement := range state.Accepted {
+			acceptedStmt2Nodes[statement] = append(acceptedStmt2Nodes[statement], node)
+		}
 	}
+
+	return votedForStmt2Nodes, acceptedStmt2Nodes
 }
 
-func (n *node) getStatements() {
-	// return of a union of all voted for accepted statements from each state
+// check if the given list of nodes forms a blocking set
+func (n *node) checkBlocking(nodes []string) bool {
+	// for every quorum slice of the local node
+	isBlockingSet := true
+	for _, quorumSlice := range n.nodesQuorumSlices[n.Id] {
+		// check if there exists a node in the list belonging to the quorum slice
+		existed := false
+		for _, node := range nodes {
+			for _, qsNode := range quorumSlice {
+				if node == qsNode {
+					existed = true
+					break
+				}
+			}
+		}
+		if !existed {
+			isBlockingSet = false
+			break
+		}
+	}
+
+	return isBlockingSet
 }
 
-// check if all blocking set members have voted for or accepted a statement
-func (n *node) checkBlocking() {
-	// for every statement
-	// for every n.quorumslices
-	// check if the statement exists in that quorum slice
-	// true for all
-	// blocking
-}
-
-// check if all quorum members have for or accepted a statement
-func (n *node) checkQuorum() {
+// check if the given list of nodes forms a quorum
+func (n *node) checkQuorum(nodes []string) bool {
+	return true
 }
 
 func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, error) {
+	votedForStmt2Nodes, acceptedStmt2Nodes := n.getStatements()
 
-	n.check_blocking(in.KnownStates)
-	// check_quorum(in.votedfor)
+	for _, nodes := range votedForStmt2Nodes {
+		n.checkBlocking(nodes)
+		n.checkQuorum(nodes)
+	}
 
-	// check_blocking(in.accepted)
-	// check_quorum(in.accepted)
+	for _, nodes := range acceptedStmt2Nodes {
+		n.checkBlocking(nodes)
+		n.checkQuorum(nodes)
+	}
 
 	// transition(n.state)
 
@@ -96,7 +122,8 @@ func (n *node) Put(ctx context.Context, in *kv.PutRequest) (*kv.PutResponse, err
 
 func createNode() *node {
 	return &node{
-		nodesState: make([]*fvp.SendMsg_State, 0),
+		nodesState:        make(map[string]fvp.SendMsg_State, 0),
+		nodesQuorumSlices: make(map[string][][]string, 0),
 	}
 }
 
