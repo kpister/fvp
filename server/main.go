@@ -16,11 +16,7 @@ type node struct {
 }
 
 func (n *node) broadcast() {
-	/*
-	   for n' in neighbors {
-	       n'.send(n.state)
-	   }
-	*/
+
 }
 
 func (n *node) updateStates(states []*fvp.SendMsg_State) {
@@ -59,6 +55,34 @@ func (n *node) getStatements() (map[string][]string, map[string][]string) {
 	return votedForStmt2Nodes, acceptedStmt2Nodes
 }
 
+// getAllVotedStatements returns all the statements anyone is voting for
+func (n *node) getAllVotedStatements() []string {
+	votedStatements := make([]string, 0)
+	for _, state := range n.nodesState {
+		for _, vote := range state.VotedFor {
+			if !inArray(votedStatements, vote) {
+				votedStatements = append(votedStatements, vote)
+			}
+		}
+
+	}
+	return votedStatements
+}
+
+// getAllAcceptedStatements returns all the statements anyone is accepting
+func (n *node) getAllAcceptedStatements() []string {
+	acceptedStatements := make([]string, 0)
+	for _, state := range n.nodesState {
+		for _, accept := range state.VotedFor {
+			if !inArray(acceptedStatements, accept) {
+				acceptedStatements = append(acceptedStatements, accept)
+			}
+		}
+
+	}
+	return acceptedStatements
+}
+
 // check if the given list of nodes forms a blocking set
 func (n *node) checkBlocking(nodes []string) bool {
 	// for every quorum slice of the local node
@@ -83,9 +107,89 @@ func (n *node) checkBlocking(nodes []string) bool {
 	return isBlockingSet
 }
 
-// check if the given list of nodes forms a quorum
-func (n *node) checkQuorum(nodes []string) bool {
-	return true
+// checkVoteQuorum check if we have a quorum for any voted statement
+func (n *node) checkVoteQuorum() []string {
+	// assume that the state is updated
+	votedStatements := n.getAllVotedStatements()
+	// for each statement in votedStatements we need to check if a quorum of nodes are voting for it
+	statementsWithQuorum := make([]string, 0)
+	for _, statement := range votedStatements {
+		if len(n.checkQuorumForVoteStatement(statement)) != 0 {
+			// we have a quorum for this statement
+			statementsWithQuorum = append(statementsWithQuorum, statement)
+		}
+	}
+
+	// in correct protocol len(statementsWithQuorum) should atmost be 1
+	return statementsWithQuorum
+
+}
+
+// checkQuorumForVoteStatement checks if we have a quorum which is voting for a particular statement
+func (n *node) checkQuorumForVoteStatement(statement string) []string {
+	nodesQSlices := make(map[string][][]string)
+
+	// copy the quorum slices
+	for k, v := range n.nodesQuorumSlices {
+		nodesQSlices[k] = v
+	}
+
+	// for all nodes remove all the slices in which any node doesn't vote for the statement
+	for k := range nodesQSlices {
+		QSlices := nodesQSlices[k]
+		l := len(QSlices)
+
+		for i := 0; i < l; i++ {
+			slice := QSlices[i]
+			if !isUnanimousVote(slice, statement, n.nodesState) {
+				QSlices = remove(QSlices, i)
+				l--
+			}
+		}
+		nodesQSlices[k] = QSlices
+	}
+
+	for {
+		// look for nodes which now have empty quorum slice
+		emptyNodes := make([]string, 0)
+		for k := range nodesQSlices {
+			QSlices := nodesQSlices[k]
+			if len(QSlices) == 0 {
+				emptyNodes = append(emptyNodes, k)
+			}
+		}
+
+		if len(emptyNodes) == 0 {
+			break
+		}
+
+		// remove all the slices with empty node
+		for _, emptyNode := range emptyNodes {
+			for k := range nodesQSlices {
+				QSlices := nodesQSlices[k]
+				l := len(QSlices)
+
+				for i := 0; i < l; i++ {
+					slice := QSlices[i]
+					if inArray(slice, emptyNode) {
+						QSlices = remove(QSlices, i)
+						l--
+					}
+				}
+				nodesQSlices[k] = QSlices
+			}
+		}
+	}
+
+	// check if we have any node with non-empty quorum slice set
+	nodesInQuorum := make([]string, 0)
+	for k := range nodesQSlices {
+		QSlices := nodesQSlices[k]
+		if len(QSlices) != 0 {
+			nodesInQuorum = append(nodesInQuorum, k)
+		}
+	}
+	return nodesInQuorum
 }
 
 func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, error) {
@@ -93,12 +197,12 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 
 	for _, nodes := range votedForStmt2Nodes {
 		n.checkBlocking(nodes)
-		n.checkQuorum(nodes)
+		n.checkVoteQuorum()
 	}
 
 	for _, nodes := range acceptedStmt2Nodes {
 		n.checkBlocking(nodes)
-		n.checkQuorum(nodes)
+		n.checkVoteQuorum()
 	}
 
 	// transition(n.state)
