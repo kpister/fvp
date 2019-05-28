@@ -9,7 +9,7 @@ import (
 )
 
 type node struct {
-	Id                string
+	id                string
 	nodesState        map[string]fvp.SendMsg_State
 	nodesQuorumSlices map[string][][]string
 	stateCounter      int32
@@ -83,11 +83,50 @@ func (n *node) getAllAcceptedStatements() []string {
 	return acceptedStatements
 }
 
+// check if the given list of nodes forms a quorum
+// Def. for all nodes v in the given set of nodes U,
+// there exists a quorum slice q of node v such that q is a subset of U
+func (n *node) checkQuorum(nodes []string) bool {
+	for _, node := range nodes {
+		// find if there is a quorum slice of node v is a subset of U
+		existed := false
+		for _, quorumSlice := range n.nodesQuorumSlices[node] {
+			isSubset := true
+			for _, qsNode := range quorumSlice {
+				found := false
+				for _, node := range nodes {
+					if qsNode == node {
+						found = true
+						break
+					}
+				}
+				if !found {
+					// this quorum slice is not a subset of U
+					isSubset = false
+					break
+				}
+			}
+			if isSubset {
+				// this quorum slice is a subset of U
+				existed = true
+				break
+			}
+		}
+		if !existed {
+			// no quorum slice of node v is a subset of U
+			return false
+		}
+	}
+
+	return true
+}
+
 // check if the given list of nodes forms a blocking set
+// Def. for all quorum slices q of node v
+// the intersection of q and the given set of nodes B is not an empty set
 func (n *node) checkBlocking(nodes []string) bool {
 	// for every quorum slice of the local node
-	isBlockingSet := true
-	for _, quorumSlice := range n.nodesQuorumSlices[n.Id] {
+	for _, quorumSlice := range n.nodesQuorumSlices[n.id] {
 		// check if there exists a node in the list belonging to the quorum slice
 		existed := false
 		for _, node := range nodes {
@@ -97,14 +136,17 @@ func (n *node) checkBlocking(nodes []string) bool {
 					break
 				}
 			}
+			if existed {
+				break
+			}
 		}
 		if !existed {
-			isBlockingSet = false
-			break
+			// the intersectino of a quorum slice of v and the given set of nodes is an empty set
+			return false
 		}
 	}
 
-	return isBlockingSet
+	return true
 }
 
 // checkVoteQuorum check if we have a quorum for any voted statement
@@ -197,11 +239,13 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 
 	for _, nodes := range votedForStmt2Nodes {
 		n.checkBlocking(nodes)
+		// n.checkQuorum(nodes)
 		n.checkVoteQuorum()
 	}
 
 	for _, nodes := range acceptedStmt2Nodes {
 		n.checkBlocking(nodes)
+		// n.checkQuorum(nodes)
 		n.checkVoteQuorum()
 	}
 
@@ -224,8 +268,9 @@ func (n *node) Put(ctx context.Context, in *kv.PutRequest) (*kv.PutResponse, err
 	return &kv.PutResponse{Ret: kv.ReturnCode_SUCCESS}, nil
 }
 
-func createNode() *node {
+func createNode(nodeId string) *node {
 	return &node{
+		id:                nodeId,
 		nodesState:        make(map[string]fvp.SendMsg_State, 0),
 		nodesQuorumSlices: make(map[string][][]string, 0),
 	}
@@ -234,7 +279,7 @@ func createNode() *node {
 func main() {
 	setupLog("~/node_id/log.txt")
 	// create node
-	n := createNode()
+	n := createNode("0")
 
 	// setup grpc
 	// ...
