@@ -31,7 +31,7 @@ func TestCheckQuorum(t *testing.T) {
 	nodes = []string{"0", "1", "2", "3", "4", "5"}
 	t.Run("2 separated groups", testCheckQuorumFunc(n, nodes, true))
 
-	n = createNode("0")
+	n = createNode("1")
 	n.nodesQuorumSlices = map[string][][]string{
 		"1": [][]string{[]string{"1", "2", "3"}},
 		"2": [][]string{[]string{"2", "3", "4"}},
@@ -43,6 +43,21 @@ func TestCheckQuorum(t *testing.T) {
 
 	nodes = []string{"1", "2", "3", "4"}
 	t.Run("example on page 5 true", testCheckQuorumFunc(n, nodes, true))
+
+	n = createNode("1")
+	n.nodesQuorumSlices = map[string][][]string{
+		"1": [][]string{[]string{"1", "2"}},
+		"2": [][]string{[]string{"2", "3"}},
+		"3": [][]string{[]string{"3", "4"}},
+		"4": [][]string{[]string{"4", "5"}},
+		"5": [][]string{[]string{"5", "6"}},
+		"6": [][]string{[]string{"5", "1"}},
+	}
+	nodes = []string{"1", "2", "3", "4", "5", "6"}
+	t.Run("example on page 6 true", testCheckQuorumFunc(n, nodes, true))
+
+	nodes = []string{"1", "2", "4", "5", "6"}
+	t.Run("example on page 6 false", testCheckQuorumFunc(n, nodes, false))
 }
 
 func testCheckQuorumFunc(n *node, nodes []string, expected bool) func(*testing.T) {
@@ -60,13 +75,16 @@ func TestCheckBlocking(t *testing.T) {
 
 	n = createNode("0")
 	n.nodesQuorumSlices = map[string][][]string{
-		"0": [][]string{[]string{"0", "1"}, {"2", "3"}, {"3", "4"}},
+		"0": [][]string{[]string{"0", "1", "2"}, {"0", "3", "4"}, {"0", "4", "5"}},
 	}
-	nodes = []string{"0", "2", "4"}
+	nodes = []string{"1", "3", "5"}
 	t.Run("example in blog post 1", testCheckBlockingFunc(n, nodes, true))
 
-	nodes = []string{"0", "3"}
+	nodes = []string{"1", "4"}
 	t.Run("example in blog post 2", testCheckBlockingFunc(n, nodes, true))
+
+	nodes = []string{"1", "5"}
+	t.Run("example in blog post 3", testCheckBlockingFunc(n, nodes, false))
 }
 
 func testCheckBlockingFunc(n *node, nodes []string, expected bool) func(*testing.T) {
