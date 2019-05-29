@@ -5,18 +5,59 @@ import (
 	kv "github.com/kpister/fvp/server/proto/kvstore"
 
 	"context"
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"google.golang.org/grpc"
+	"log"
+	"net"
+	"strings"
 	"time"
 )
+
+/*
+* TODO: add error handler -- soon . 1 hr
+* TODO: consider non-unanimous votes in quorum slice based on threshold % -- never? . 2 hrs
+* TODO: write get/set client -- later . 30 min
+* TODO: write monitor getstate -- later . 1 day
+* TODO: run benchmarks -- end . 2 days
+*/
 
 type node struct {
 	id                string
 	nodesState        map[string]fvp.SendMsg_State
 	nodesQuorumSlices map[string][][]string
 	stateCounter      int32
+	nodesFvpClients   map[string]fvp.ServerClient
+	nodesAddrs        map[string]string
 }
 
 func (n *node) broadcast() {
+	sent := make([]string, 0)
 
+	ks := make([]*fvp.SendMsg_State, 0)
+	for _, state := range n.nodesState {
+		ks = append(ks, &state)
+	}
+	args := &fvp.SendMsg{KnownStates: ks}
+
+	for _, slice := range n.nodesQuorumSlices[n.id] {
+		for _, neighbor := range slice {
+			if inArray(sent, neighbor) {
+				continue
+			}
+			sent = append(sent, neighbor)
+
+			// TODO add cancel?
+			ctx, _ := context.WithTimeout(
+				context.Background(),
+				time.Duration(100)*time.Millisecond)
+
+			_, err := n.nodesFvpClients[neighbor].Send(ctx, args)
+			if err != nil {
+				continue
+				//n.errorHandler(err, "BC", n.id)
+			}
+		}
+	}
 }
 
 func (n *node) updateStates(states []*fvp.SendMsg_State) {
@@ -31,12 +72,19 @@ func (n *node) updateStates(states []*fvp.SendMsg_State) {
 
 func (n *node) updateQuorumSlices(states []*fvp.SendMsg_State) {
 	for _, state := range states {
-		n.nodesQuorumSlices[state.Id] = convertQuorumSlices(state.QuorumSlices)
+		if _, ok := n.nodesQuorumSlices[state.Id]; !ok {
+			n.nodesQuorumSlices[state.Id] = convertQuorumSlices(state.QuorumSlices)
+		}
 	}
 }
 
 func convertQuorumSlices(qs []*fvp.SendMsg_Slice) [][]string {
-	return make([][]string, 0)
+	ret := make([][]string, 0)
+
+	for _, el := range qs {
+		ret = append(ret, el.Nodes)
+	}
+	return ret
 }
 
 // get a map of a statement to a list of nodes that voted for/accepted it
@@ -48,6 +96,9 @@ func (n *node) getStatements() (map[string][]string, map[string][]string) {
 			votedForStmt2Nodes[statement] = append(votedForStmt2Nodes[statement], node)
 		}
 		for _, statement := range state.Accepted {
+			if !inArray(votedForStmt2Nodes[statement], node) {
+				votedForStmt2Nodes[statement] = append(votedForStmt2Nodes[statement], node)
+			}
 			acceptedStmt2Nodes[statement] = append(acceptedStmt2Nodes[statement], node)
 		}
 	}
@@ -64,6 +115,11 @@ func (n *node) getAllVotedStatements() []string {
 				votedStatements = append(votedStatements, vote)
 			}
 		}
+		for _, vote := range state.Accepted {
+			if !inArray(votedStatements, vote) {
+				votedStatements = append(votedStatements, vote)
+			}
+		}
 
 	}
 	return votedStatements
@@ -73,7 +129,7 @@ func (n *node) getAllVotedStatements() []string {
 func (n *node) getAllAcceptedStatements() []string {
 	acceptedStatements := make([]string, 0)
 	for _, state := range n.nodesState {
-		for _, accept := range state.VotedFor {
+		for _, accept := range state.Accepted {
 			if !inArray(acceptedStatements, accept) {
 				acceptedStatements = append(acceptedStatements, accept)
 			}
@@ -221,6 +277,7 @@ func (n *node) checkQuorumForVoteStatement(statement string) []string {
 				nodesQSlices[k] = QSlices
 			}
 		}
+		// we need to remove the node itself from nodesQSlices?
 	}
 
 	// check if we have any node with non-empty quorum slice set
@@ -235,21 +292,45 @@ func (n *node) checkQuorumForVoteStatement(statement string) []string {
 }
 
 func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, error) {
+	n.updateStates(in.KnownStates)
+	n.updateQuorumSlices(in.KnownStates)
+
 	votedForStmt2Nodes, acceptedStmt2Nodes := n.getStatements()
 
-	for _, nodes := range votedForStmt2Nodes {
-		n.checkBlocking(nodes)
-		// n.checkQuorum(nodes)
-		n.checkVoteQuorum()
+	update := false
+	accepted := n.nodesState[n.id].Accepted
+	confirmed := n.nodesState[n.id].Confirmed
+	for stmt, nodes := range votedForStmt2Nodes {
+		accept := n.checkQuorum(nodes) //Quorum of vote or accept
+		if accept {
+			accepted = append(accepted, stmt)
+			update = true
+		}
 	}
 
-	for _, nodes := range acceptedStmt2Nodes {
-		n.checkBlocking(nodes)
-		// n.checkQuorum(nodes)
-		n.checkVoteQuorum()
+	for stmt, nodes := range acceptedStmt2Nodes {
+		// assert statement is not in confict with any others we have accepted
+		if n.checkBlocking(nodes) {
+			accepted = append(accepted, stmt)
+			update = true
+		}
+		if n.checkQuorum(nodes) {
+			confirmed = append(confirmed, stmt)
+			update = true
+		}
 	}
 
-	// transition(n.state)
+	if update {
+		n.stateCounter++
+		n.nodesState[n.id] = fvp.SendMsg_State{
+			Id:           n.id,
+			Accepted:     accepted,
+			VotedFor:     n.nodesState[n.id].VotedFor,
+			Confirmed:    confirmed,
+			QuorumSlices: n.nodesState[n.id].QuorumSlices,
+			Counter:      n.stateCounter,
+		}
+	}
 
 	return &fvp.EmptyMessage{}, nil
 }
@@ -276,17 +357,50 @@ func createNode(nodeId string) *node {
 	}
 }
 
+func (n *node) buildClients() {
+	// grpc will retry in 20 ms at most 5 times when failed
+	opts := []grpc_retry.CallOption{
+		grpc_retry.WithMax(5),
+		grpc_retry.WithPerRetryTimeout(20 * time.Millisecond),
+	}
+
+	for _, addr := range n.nodesAddrs {
+		if addr == n.id {
+			continue
+		}
+
+		log.Printf("Connecting to %s\n", n.nodesAddrs[addr])
+
+		conn, err := grpc.Dial(n.nodesAddrs[addr], grpc.WithInsecure(),
+			grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)))
+		if err != nil {
+			log.Printf("Failed to connect %s: %v\n", n.nodesAddrs[addr], err)
+		}
+
+		n.nodesFvpClients[addr] = fvp.NewServerClient(conn)
+	}
+}
+
 func main() {
 	setupLog("~/node_id/log.txt")
 	// create node
 	n := createNode("0")
 
 	// setup grpc
-	// ...
+	lis, err := net.Listen("tcp", ":"+strings.Split(n.nodesAddrs[n.id], ":")[1])
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+
+	grpcServer := grpc.NewServer()
+	fvp.RegisterServerServer(grpcServer, n)
+	n.buildClients()
+
+	log.Printf("Listening on %s\n", n.nodesAddrs[n.id])
+	grpcServer.Serve(lis)
 
 	// create timer
 	ticker := time.NewTicker(50 * time.Millisecond)
-
 	for range ticker.C {
 		go n.broadcast()
 	}
