@@ -5,10 +5,12 @@ import (
 	kv "github.com/kpister/fvp/server/proto/kvstore"
 
 	"context"
+	"fmt"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
-	"log"
 	"net"
+	"os"
+	"path"
 	"strings"
 	"time"
 )
@@ -60,8 +62,7 @@ func (n *node) broadcast() {
 
 			_, err := n.nodesFvpClients[neighbor].Send(ctx, args)
 			if err != nil {
-				continue
-				//n.errorHandler(err, "BC", n.id)
+				n.errorHandler(err, "broadcast", n.id)
 			}
 		}
 	}
@@ -356,8 +357,10 @@ func (n *node) Put(ctx context.Context, in *kv.PutRequest) (*kv.PutResponse, err
 func createNode(nodeId string) *node {
 	return &node{
 		id:                nodeId,
+		nodesAddrs:        make(map[string]string, 0),
 		nodesState:        make(map[string]fvp.SendMsg_State, 0),
 		nodesQuorumSlices: make(map[string][][]string, 0),
+		nodesFvpClients:   make(map[string]fvp.ServerClient, 0),
 	}
 }
 
@@ -373,12 +376,12 @@ func (n *node) buildClients() {
 			continue
 		}
 
-		log.Printf("Connecting to %s\n", n.nodesAddrs[addr])
+		Log("low", "connection", "Connecting to "+n.nodesAddrs[addr])
 
 		conn, err := grpc.Dial(n.nodesAddrs[addr], grpc.WithInsecure(),
 			grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)))
 		if err != nil {
-			log.Printf("Failed to connect %s: %v\n", n.nodesAddrs[addr], err)
+			Log("low", "connection", fmt.Sprintf("Failed to connect to %s. %v\n", n.nodesAddrs[addr], err))
 		}
 
 		n.nodesFvpClients[addr] = fvp.NewServerClient(conn)
@@ -386,21 +389,25 @@ func (n *node) buildClients() {
 }
 
 func main() {
-	setupLog("~/node_id/log.txt")
+	// TODO: remove this. directly assign log path, id, and address for now
+	nodeId := "0"
+	os.MkdirAll(path.Join(os.Getenv("HOME"), nodeId), 0755)
+	setupLog(path.Join(os.Getenv("HOME"), nodeId, "log.txt"))
 	// create node
-	n := createNode("0")
+	n := createNode(nodeId)
+	n.nodesAddrs[n.id] = "localhost:8000"
 
 	// setup grpc
 	lis, err := net.Listen("tcp", ":"+strings.Split(n.nodesAddrs[n.id], ":")[1])
 	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
+		Log("low", "connection", fmt.Sprintf("Failed to listen on the port. %v", err))
 	}
 
 	grpcServer := grpc.NewServer()
 	fvp.RegisterServerServer(grpcServer, n)
 	n.buildClients()
 
-	log.Printf("Listening on %s\n", n.nodesAddrs[n.id])
+	Log("low", "connection", "Listening on "+n.nodesAddrs[n.id])
 	grpcServer.Serve(lis)
 
 	// create timer
