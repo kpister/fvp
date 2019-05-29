@@ -14,12 +14,16 @@ import (
 )
 
 /*
-* TODO: add error handler -- soon . 1 hr
-* TODO: consider non-unanimous votes in quorum slice based on threshold % -- never? . 2 hrs
-* TODO: write get/set client -- later . 30 min
-* TODO: write monitor getstate -- later . 1 day
-* TODO: run benchmarks -- end . 2 days
-*/
+* TODO: add json loading of configs -- 1 -- kaiser
+* TODO: add error handler -- 1 -- Yu-Wun
+* TODO: consider non-unanimous votes in quorum slice based on threshold % -- inf -- .
+* TODO: write get/set client -- 2 -- Kaiser
+* TODO: write monitor getstate -- 3 -- everyone
+* TODO: setup remote -- 4 -- .
+* TODO: test, test, test -- 5 -- everyone
+* TODO: run benchmarks -- last -- everyone
+* TODO: write report
+ */
 
 type node struct {
 	id                string
@@ -33,14 +37,17 @@ type node struct {
 func (n *node) broadcast() {
 	sent := make([]string, 0)
 
+	// build arguments, list of states
 	ks := make([]*fvp.SendMsg_State, 0)
 	for _, state := range n.nodesState {
 		ks = append(ks, &state)
 	}
 	args := &fvp.SendMsg{KnownStates: ks}
 
+	// for every neighbor send the message
 	for _, slice := range n.nodesQuorumSlices[n.id] {
 		for _, neighbor := range slice {
+			// don't send twice
 			if inArray(sent, neighbor) {
 				continue
 			}
@@ -301,21 +308,18 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 	accepted := n.nodesState[n.id].Accepted
 	confirmed := n.nodesState[n.id].Confirmed
 	for stmt, nodes := range votedForStmt2Nodes {
-		accept := n.checkQuorum(nodes) //Quorum of vote or accept
-		if accept {
+		if n.checkQuorum(nodes) {
 			accepted = append(accepted, stmt)
 			update = true
 		}
 	}
 
 	for stmt, nodes := range acceptedStmt2Nodes {
-		// assert statement is not in confict with any others we have accepted
-		if n.checkBlocking(nodes) {
-			accepted = append(accepted, stmt)
-			update = true
-		}
 		if n.checkQuorum(nodes) {
 			confirmed = append(confirmed, stmt)
+			update = true
+		} else if n.checkBlocking(nodes) { // assert statement is not in confict with any others we have voted for?
+			accepted = append(accepted, stmt)
 			update = true
 		}
 	}
