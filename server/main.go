@@ -1,18 +1,24 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
+	"io/ioutil"
+	"math/rand"
+
 	fvp "github.com/kpister/fvp/server/proto/fvp"
 	kv "github.com/kpister/fvp/server/proto/kvstore"
 
 	"context"
 	"fmt"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	"google.golang.org/grpc"
 	"net"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"google.golang.org/grpc"
 )
 
 /*
@@ -28,12 +34,12 @@ import (
  */
 
 type node struct {
-	id                string
-	nodesState        map[string]fvp.SendMsg_State
-	nodesQuorumSlices map[string][][]string
-	stateCounter      int32
-	nodesFvpClients   map[string]fvp.ServerClient
-	nodesAddrs        map[string]string
+	ID                string
+	NodesState        map[string]fvp.SendMsg_State
+	NodesQuorumSlices map[string][][]string
+	StateCounter      int32
+	NodesFvpClients   map[string]fvp.ServerClient
+	NodesAddrs        map[string]string
 }
 
 func (n *node) broadcast() {
@@ -41,28 +47,35 @@ func (n *node) broadcast() {
 
 	// build arguments, list of states
 	ks := make([]*fvp.SendMsg_State, 0)
-	for _, state := range n.nodesState {
+	for _, state := range n.NodesState {
 		ks = append(ks, &state)
 	}
 	args := &fvp.SendMsg{KnownStates: ks}
 
 	// for every neighbor send the message
-	for _, slice := range n.nodesQuorumSlices[n.id] {
+	for _, slice := range n.NodesQuorumSlices[n.ID] {
 		for _, neighbor := range slice {
+
+			// don't send to yourself
+			if neighbor == n.ID {
+				continue
+			}
+
 			// don't send twice
 			if inArray(sent, neighbor) {
 				continue
 			}
 			sent = append(sent, neighbor)
 
+			// Log("low", "broadcast", "broadcasting to "+neighbor)
 			// TODO add cancel?
 			ctx, _ := context.WithTimeout(
 				context.Background(),
 				time.Duration(100)*time.Millisecond)
 
-			_, err := n.nodesFvpClients[neighbor].Send(ctx, args)
+			_, err := n.NodesFvpClients[neighbor].Send(ctx, args)
 			if err != nil {
-				n.errorHandler(err, "broadcast", n.id)
+				n.errorHandler(err, "broadcast", n.ID)
 			}
 		}
 	}
@@ -70,18 +83,21 @@ func (n *node) broadcast() {
 
 func (n *node) updateStates(states []*fvp.SendMsg_State) {
 	for _, state := range states {
-		if prevState, ok := n.nodesState[state.Id]; !ok {
-			n.nodesState[state.Id] = *state
+
+		if prevState, ok := n.NodesState[state.Id]; !ok {
+			n.NodesState[state.Id] = *state
+			Log("low", "send", "updating state of "+state.Id+"for first time")
 		} else if state.Counter > prevState.Counter {
-			n.nodesState[state.Id] = *state
+			n.NodesState[state.Id] = *state
+			Log("low", "send", "updating state of "+state.Id+"for updated counter")
 		}
 	}
 }
 
 func (n *node) updateQuorumSlices(states []*fvp.SendMsg_State) {
 	for _, state := range states {
-		if _, ok := n.nodesQuorumSlices[state.Id]; !ok {
-			n.nodesQuorumSlices[state.Id] = convertQuorumSlices(state.QuorumSlices)
+		if _, ok := n.NodesQuorumSlices[state.Id]; !ok {
+			n.NodesQuorumSlices[state.Id] = convertQuorumSlices(state.QuorumSlices)
 		}
 	}
 }
@@ -99,7 +115,7 @@ func convertQuorumSlices(qs []*fvp.SendMsg_Slice) [][]string {
 func (n *node) getStatements() (map[string][]string, map[string][]string) {
 	votedForStmt2Nodes := make(map[string][]string, 0)
 	acceptedStmt2Nodes := make(map[string][]string, 0)
-	for node, state := range n.nodesState {
+	for node, state := range n.NodesState {
 		for _, statement := range state.VotedFor {
 			votedForStmt2Nodes[statement] = append(votedForStmt2Nodes[statement], node)
 		}
@@ -117,7 +133,7 @@ func (n *node) getStatements() (map[string][]string, map[string][]string) {
 // getAllVotedStatements returns all the statements anyone is voting for
 func (n *node) getAllVotedStatements() []string {
 	votedStatements := make([]string, 0)
-	for _, state := range n.nodesState {
+	for _, state := range n.NodesState {
 		for _, vote := range state.VotedFor {
 			if !inArray(votedStatements, vote) {
 				votedStatements = append(votedStatements, vote)
@@ -136,7 +152,7 @@ func (n *node) getAllVotedStatements() []string {
 // getAllAcceptedStatements returns all the statements anyone is accepting
 func (n *node) getAllAcceptedStatements() []string {
 	acceptedStatements := make([]string, 0)
-	for _, state := range n.nodesState {
+	for _, state := range n.NodesState {
 		for _, accept := range state.Accepted {
 			if !inArray(acceptedStatements, accept) {
 				acceptedStatements = append(acceptedStatements, accept)
@@ -154,7 +170,7 @@ func (n *node) checkQuorum(nodes []string) bool {
 	for _, node := range nodes {
 		// find if there is a quorum slice of node v is a subset of U
 		existed := false
-		for _, quorumSlice := range n.nodesQuorumSlices[node] {
+		for _, quorumSlice := range n.NodesQuorumSlices[node] {
 			isSubset := true
 			for _, qsNode := range quorumSlice {
 				found := false
@@ -190,7 +206,7 @@ func (n *node) checkQuorum(nodes []string) bool {
 // the intersection of q and the given set of nodes B is not an empty set
 func (n *node) checkBlocking(nodes []string) bool {
 	// for every quorum slice of the local node
-	for _, quorumSlice := range n.nodesQuorumSlices[n.id] {
+	for _, quorumSlice := range n.NodesQuorumSlices[n.ID] {
 		// check if there exists a node in the list belonging to the quorum slice
 		existed := false
 		for _, node := range nodes {
@@ -236,7 +252,7 @@ func (n *node) checkQuorumForVoteStatement(statement string) []string {
 	nodesQSlices := make(map[string][][]string)
 
 	// copy the quorum slices
-	for k, v := range n.nodesQuorumSlices {
+	for k, v := range n.NodesQuorumSlices {
 		nodesQSlices[k] = v
 	}
 
@@ -247,7 +263,7 @@ func (n *node) checkQuorumForVoteStatement(statement string) []string {
 
 		for i := 0; i < l; i++ {
 			slice := QSlices[i]
-			if !isUnanimousVote(slice, statement, n.nodesState) {
+			if !isUnanimousVote(slice, statement, n.NodesState) {
 				QSlices = remove(QSlices, i)
 				l--
 			}
@@ -300,40 +316,47 @@ func (n *node) checkQuorumForVoteStatement(statement string) []string {
 }
 
 func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, error) {
+	// Log("low", "send", "Send received")
 	n.updateStates(in.KnownStates)
 	n.updateQuorumSlices(in.KnownStates)
 
 	votedForStmt2Nodes, acceptedStmt2Nodes := n.getStatements()
 
 	update := false
-	accepted := n.nodesState[n.id].Accepted
-	confirmed := n.nodesState[n.id].Confirmed
+	accepted := n.NodesState[n.ID].Accepted
+	confirmed := n.NodesState[n.ID].Confirmed
 	for stmt, nodes := range votedForStmt2Nodes {
 		if n.checkQuorum(nodes) {
-			accepted = append(accepted, stmt)
-			update = true
+			if !inArray(accepted, stmt) {
+				accepted = append(accepted, stmt)
+				update = true
+			}
 		}
 	}
 
 	for stmt, nodes := range acceptedStmt2Nodes {
 		if n.checkQuorum(nodes) {
-			confirmed = append(confirmed, stmt)
-			update = true
+			if !inArray(confirmed, stmt) {
+				confirmed = append(confirmed, stmt)
+				update = true
+			}
 		} else if n.checkBlocking(nodes) { // assert statement is not in confict with any others we have voted for?
-			accepted = append(accepted, stmt)
-			update = true
+			if !inArray(accepted, stmt) {
+				accepted = append(accepted, stmt)
+				update = true
+			}
 		}
 	}
 
 	if update {
-		n.stateCounter++
-		n.nodesState[n.id] = fvp.SendMsg_State{
-			Id:           n.id,
+		n.StateCounter++
+		n.NodesState[n.ID] = fvp.SendMsg_State{
+			Id:           n.ID,
 			Accepted:     accepted,
-			VotedFor:     n.nodesState[n.id].VotedFor,
+			VotedFor:     n.NodesState[n.ID].VotedFor,
 			Confirmed:    confirmed,
-			QuorumSlices: n.nodesState[n.id].QuorumSlices,
-			Counter:      n.stateCounter,
+			QuorumSlices: n.NodesState[n.ID].QuorumSlices,
+			Counter:      n.StateCounter,
 		}
 	}
 
@@ -354,14 +377,36 @@ func (n *node) Put(ctx context.Context, in *kv.PutRequest) (*kv.PutResponse, err
 	return &kv.PutResponse{Ret: kv.ReturnCode_SUCCESS}, nil
 }
 
-func createNode(nodeId string) *node {
-	return &node{
-		id:                nodeId,
-		nodesAddrs:        make(map[string]string, 0),
-		nodesState:        make(map[string]fvp.SendMsg_State, 0),
-		nodesQuorumSlices: make(map[string][][]string, 0),
-		nodesFvpClients:   make(map[string]fvp.ServerClient, 0),
+func (n *node) createNode() {
+
+	// n.NodesAddrs = make(map[string]string, 0)
+	n.NodesState = make(map[string]fvp.SendMsg_State, 0)
+	// n.NodesQuorumSlices = make(map[string][][]string, 0)
+	n.NodesFvpClients = make(map[string]fvp.ServerClient, 0)
+
+	// append our own state to Nodesstate
+	ourSlices := make([]*fvp.SendMsg_Slice, 0)
+	for _, slice := range n.NodesQuorumSlices[n.ID] {
+		s := &fvp.SendMsg_Slice{
+			Nodes: slice,
+		}
+		ourSlices = append(ourSlices, s)
 	}
+
+	ourState := fvp.SendMsg_State{
+		Accepted:     make([]string, 0),
+		Confirmed:    make([]string, 0),
+		Counter:      0,
+		Id:           n.ID,
+		QuorumSlices: ourSlices,
+		VotedFor:     []string{getVote(0.6, "a", "b")},
+	}
+	n.NodesState[n.ID] = ourState
+
+	// fmt.Println(n.NodesQuorumSlices)
+	// fmt.Println(n.NodesAddrs)
+	// fmt.Println(n.ID)
+
 }
 
 func (n *node) buildClients() {
@@ -371,34 +416,68 @@ func (n *node) buildClients() {
 		grpc_retry.WithPerRetryTimeout(20 * time.Millisecond),
 	}
 
-	for _, addr := range n.nodesAddrs {
-		if addr == n.id {
+	for _, addr := range n.NodesAddrs {
+		if addr == n.ID {
 			continue
 		}
 
-		Log("low", "connection", "Connecting to "+n.nodesAddrs[addr])
+		Log("low", "connection", "Connecting to "+n.NodesAddrs[addr])
 
-		conn, err := grpc.Dial(n.nodesAddrs[addr], grpc.WithInsecure(),
+		conn, err := grpc.Dial(n.NodesAddrs[addr], grpc.WithInsecure(),
 			grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)))
 		if err != nil {
-			Log("low", "connection", fmt.Sprintf("Failed to connect to %s. %v\n", n.nodesAddrs[addr], err))
+			Log("low", "connection", fmt.Sprintf("Failed to connect to %s. %v\n", n.NodesAddrs[addr], err))
 		}
 
-		n.nodesFvpClients[addr] = fvp.NewServerClient(conn)
+		n.NodesFvpClients[addr] = fvp.NewServerClient(conn)
+	}
+}
+
+var (
+	n          *node
+	configFile = flag.String("config", "cfg.json", "the file to read the configuration from")
+	help       = flag.Bool("h", false, "for usage")
+)
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+	flag.Parse()
+
+	if *help {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
+
+	readConfig(*configFile)
+}
+
+func readConfig(configFile string) {
+	configData, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	err = json.Unmarshal(configData, &n)
+	n.createNode()
+
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 
 func main() {
+
 	// TODO: remove this. directly assign log path, id, and address for now
-	nodeId := "0"
-	os.MkdirAll(path.Join(os.Getenv("HOME"), nodeId), 0755)
-	setupLog(path.Join(os.Getenv("HOME"), nodeId, "log.txt"))
-	// create node
-	n := createNode(nodeId)
-	n.nodesAddrs[n.id] = "localhost:8000"
+
+	// os.MkdirAll(path.Join(os.Getenv("HOME"), n.ID), 0755)
+	// setupLog(path.Join(os.Getenv("HOME"), n.ID, "log.txt"))
+	os.MkdirAll(path.Join(os.Getenv("LOCAL"), n.ID), 0755)
+	setupLog(path.Join(os.Getenv("LOCAL"), n.ID, "log.txt"))
+
+	// n.NodesAddrs[n.ID] = "localhost:8000"
 
 	// setup grpc
-	lis, err := net.Listen("tcp", ":"+strings.Split(n.nodesAddrs[n.id], ":")[1])
+	lis, err := net.Listen("tcp", ":"+strings.Split(n.NodesAddrs[n.ID], ":")[1])
 	if err != nil {
 		Log("low", "connection", fmt.Sprintf("Failed to listen on the port. %v", err))
 	}
@@ -407,12 +486,16 @@ func main() {
 	fvp.RegisterServerServer(grpcServer, n)
 	n.buildClients()
 
-	Log("low", "connection", "Listening on "+n.nodesAddrs[n.id])
-	grpcServer.Serve(lis)
+	Log("low", "connection", "Listening on "+n.NodesAddrs[n.ID])
 
-	// create timer
-	ticker := time.NewTicker(50 * time.Millisecond)
-	for range ticker.C {
-		go n.broadcast()
-	}
+	ticker := time.NewTicker(2000 * time.Millisecond)
+	go func() {
+		for range ticker.C {
+			// spew.Dump(n.NodesState)
+			prettyPrintMap(n.NodesState)
+			go n.broadcast()
+		}
+	}()
+
+	grpcServer.Serve(lis)
 }

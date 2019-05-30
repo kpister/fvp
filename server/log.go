@@ -22,7 +22,7 @@ func check(valid []string, el string) bool {
 
 // Log requires a specific set of input strings
 // tag \in {"low", "medium", "high"}, defines severity
-// event \in {"vote", "accept", "confirm", "broadcast", "connection"}, is the occuring event
+// event \in {"vote", "accept", "confirm", "broadcast", "connection", "send"}, is the occuring event
 // msg is general text, which helps debugging
 func Log(tag string, event string, msg string) {
 	if !check(valid_tags, tag) {
@@ -40,7 +40,7 @@ func Log(tag string, event string, msg string) {
 // Setup the logger to write to a specific file
 func setupLog(name string) {
 	valid_tags = []string{"low", "medium", "high"}
-	valid_events = []string{"vote", "accept", "confirm", "broadcast", "connection"}
+	valid_events = []string{"vote", "accept", "confirm", "broadcast", "connection", "send"}
 
 	// open the file
 	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)

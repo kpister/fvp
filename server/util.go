@@ -1,6 +1,12 @@
 package main
 
-import fvp "github.com/kpister/fvp/server/proto/fvp"
+import (
+	"encoding/json"
+	"fmt"
+	"math/rand"
+
+	fvp "github.com/kpister/fvp/server/proto/fvp"
+)
 
 /*
 Returns true if the message should be dropped otherwise returns false
@@ -54,6 +60,20 @@ func isUnanimousVote(slice []string, statement string, state map[string]fvp.Send
 		}
 	}
 	return true
+}
+
+func prettyPrintMap(inmap interface{}) {
+	mapB, _ := json.MarshalIndent(inmap, "", " ")
+	fmt.Println("MAP::", string(mapB))
+}
+
+func getVote(prob float32, option1 string, option2 string) string {
+	random0to1 := rand.Float32()
+	fmt.Println(random0to1)
+	if random0to1 < prob {
+		return option1
+	}
+	return option2
 }
 
 // func resizeSlice(a []*raft.Entry, newSize int) []*raft.Entry {

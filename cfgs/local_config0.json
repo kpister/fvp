@@ -1,0 +1,13 @@
+{
+    "Id": "localhost:8000",
+    "NodesQuorumSlices": 
+    {
+        "localhost:8000": [["localhost:8000", "localhost:8001"], ["localhost:8000", "localhost:8002"]]
+    },
+    "NodesAddrs":
+    {
+        "localhost:8000": "localhost:8000",
+        "localhost:8001": "localhost:8001",
+        "localhost:8002": "localhost:8002"
+    }
+}
