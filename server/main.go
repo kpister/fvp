@@ -40,6 +40,7 @@ type node struct {
 	StateCounter      int32
 	NodesFvpClients   map[string]fvp.ServerClient
 	NodesAddrs        map[string]string
+	Dictionary        map[string]string
 }
 
 func (n *node) broadcast() {
@@ -75,7 +76,7 @@ func (n *node) broadcast() {
 
 			_, err := n.NodesFvpClients[neighbor].Send(ctx, args)
 			if err != nil {
-				n.errorHandler(err, "broadcast", n.ID)
+				n.errorHandler(err, "broadcast", neighbor)
 			}
 		}
 	}
@@ -364,15 +365,17 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 }
 
 func (n *node) Get(ctx context.Context, in *kv.GetRequest) (*kv.GetResponse, error) {
-
 	// lookup in.key in dictionary
+	if val, ok := n.Dictionary[in.Key]; ok {
+		return &kv.GetResponse{Value: val, Ret: kv.ReturnCode_SUCCESS}, nil
+	}
 
-	return &kv.GetResponse{Value: "", Ret: kv.ReturnCode_SUCCESS}, nil
+	return &kv.GetResponse{Value: "", Ret: kv.ReturnCode_FAILURE}, nil
 }
 
 func (n *node) Put(ctx context.Context, in *kv.PutRequest) (*kv.PutResponse, error) {
-
 	// set value in dictionary
+	n.Dictionary[in.Key] = in.Value
 
 	return &kv.PutResponse{Ret: kv.ReturnCode_SUCCESS}, nil
 }
@@ -407,6 +410,7 @@ func (n *node) createNode() {
 	// fmt.Println(n.NodesAddrs)
 	// fmt.Println(n.ID)
 
+	n.Dictionary = make(map[string]string, 0)
 }
 
 func (n *node) buildClients() {
@@ -484,6 +488,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 	fvp.RegisterServerServer(grpcServer, n)
+	kv.RegisterKeyValueStoreServer(grpcServer, n)
 	n.buildClients()
 
 	Log("low", "connection", "Listening on "+n.NodesAddrs[n.ID])
@@ -492,7 +497,7 @@ func main() {
 	go func() {
 		for range ticker.C {
 			// spew.Dump(n.NodesState)
-			prettyPrintMap(n.NodesState)
+			// prettyPrintMap(n.NodesState)
 			go n.broadcast()
 		}
 	}()
