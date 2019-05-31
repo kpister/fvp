@@ -4,8 +4,10 @@
 package monitor
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
 	math "math"
 )
 
@@ -313,4 +315,142 @@ var fileDescriptor_44174b7b2a306b71 = []byte{
 	0xd5, 0xee, 0x62, 0x78, 0xd1, 0xac, 0x5b, 0xc9, 0x9d, 0x15, 0x33, 0x61, 0xb3, 0x75, 0x59, 0x91,
 	0x3d, 0xd2, 0x6a, 0xed, 0xff, 0xab, 0x5f, 0x27, 0xee, 0xb9, 0xa7, 0x7f, 0x01, 0x00, 0x00, 0xff,
 	0xff, 0xa2, 0x84, 0xb8, 0x4c, 0xff, 0x01, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// MonitorClient is the client API for Monitor service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type MonitorClient interface {
+	UploadConnMap(ctx context.Context, in *ConnMap, opts ...grpc.CallOption) (*ReturnMessage, error)
+	GetState(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*ServerState, error)
+	SetEvil(ctx context.Context, in *BoolMessage, opts ...grpc.CallOption) (*ReturnMessage, error)
+}
+
+type monitorClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewMonitorClient(cc *grpc.ClientConn) MonitorClient {
+	return &monitorClient{cc}
+}
+
+func (c *monitorClient) UploadConnMap(ctx context.Context, in *ConnMap, opts ...grpc.CallOption) (*ReturnMessage, error) {
+	out := new(ReturnMessage)
+	err := c.cc.Invoke(ctx, "/monitor.Monitor/UploadConnMap", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monitorClient) GetState(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*ServerState, error) {
+	out := new(ServerState)
+	err := c.cc.Invoke(ctx, "/monitor.Monitor/GetState", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *monitorClient) SetEvil(ctx context.Context, in *BoolMessage, opts ...grpc.CallOption) (*ReturnMessage, error) {
+	out := new(ReturnMessage)
+	err := c.cc.Invoke(ctx, "/monitor.Monitor/SetEvil", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// MonitorServer is the server API for Monitor service.
+type MonitorServer interface {
+	UploadConnMap(context.Context, *ConnMap) (*ReturnMessage, error)
+	GetState(context.Context, *EmptyMessage) (*ServerState, error)
+	SetEvil(context.Context, *BoolMessage) (*ReturnMessage, error)
+}
+
+func RegisterMonitorServer(s *grpc.Server, srv MonitorServer) {
+	s.RegisterService(&_Monitor_serviceDesc, srv)
+}
+
+func _Monitor_UploadConnMap_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConnMap)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonitorServer).UploadConnMap(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/monitor.Monitor/UploadConnMap",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonitorServer).UploadConnMap(ctx, req.(*ConnMap))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Monitor_GetState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonitorServer).GetState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/monitor.Monitor/GetState",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonitorServer).GetState(ctx, req.(*EmptyMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Monitor_SetEvil_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BoolMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonitorServer).SetEvil(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/monitor.Monitor/SetEvil",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonitorServer).SetEvil(ctx, req.(*BoolMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Monitor_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "monitor.Monitor",
+	HandlerType: (*MonitorServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "UploadConnMap",
+			Handler:    _Monitor_UploadConnMap_Handler,
+		},
+		{
+			MethodName: "GetState",
+			Handler:    _Monitor_GetState_Handler,
+		},
+		{
+			MethodName: "SetEvil",
+			Handler:    _Monitor_SetEvil_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "monitor.proto",
 }

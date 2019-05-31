@@ -8,8 +8,6 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -376,20 +374,6 @@ type MonitorServer interface {
 	UploadConnMap(context.Context, *ConnMap) (*ReturnMessage, error)
 	GetState(context.Context, *EmptyMessage) (*ServerState, error)
 	SetEvil(context.Context, *BoolMessage) (*ReturnMessage, error)
-}
-
-// UnimplementedMonitorServer can be embedded to have forward compatible implementations.
-type UnimplementedMonitorServer struct {
-}
-
-func (*UnimplementedMonitorServer) UploadConnMap(ctx context.Context, req *ConnMap) (*ReturnMessage, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UploadConnMap not implemented")
-}
-func (*UnimplementedMonitorServer) GetState(ctx context.Context, req *EmptyMessage) (*ServerState, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetState not implemented")
-}
-func (*UnimplementedMonitorServer) SetEvil(ctx context.Context, req *BoolMessage) (*ReturnMessage, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetEvil not implemented")
 }
 
 func RegisterMonitorServer(s *grpc.Server, srv MonitorServer) {

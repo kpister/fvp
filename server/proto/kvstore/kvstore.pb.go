@@ -4,8 +4,10 @@
 package kvstore
 
 import (
+	context "context"
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	grpc "google.golang.org/grpc"
 	math "math"
 )
 
@@ -277,4 +279,109 @@ var fileDescriptor_088d7f6aff848d9e = []byte{
 	0x67, 0xb0, 0x98, 0x86, 0xd7, 0xb4, 0x26, 0xc8, 0xaa, 0x9a, 0x72, 0xa9, 0x15, 0x4d, 0x65, 0x03,
 	0xbc, 0xb6, 0xfc, 0x97, 0x9f, 0xfd, 0xea, 0x2b, 0x00, 0x00, 0xff, 0xff, 0x70, 0x68, 0xc7, 0xe4,
 	0x07, 0x02, 0x00, 0x00,
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// KeyValueStoreClient is the client API for KeyValueStore service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type KeyValueStoreClient interface {
+	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
+	Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutResponse, error)
+}
+
+type keyValueStoreClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewKeyValueStoreClient(cc *grpc.ClientConn) KeyValueStoreClient {
+	return &keyValueStoreClient{cc}
+}
+
+func (c *keyValueStoreClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error) {
+	out := new(GetResponse)
+	err := c.cc.Invoke(ctx, "/kvstore.KeyValueStore/Get", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *keyValueStoreClient) Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutResponse, error) {
+	out := new(PutResponse)
+	err := c.cc.Invoke(ctx, "/kvstore.KeyValueStore/Put", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// KeyValueStoreServer is the server API for KeyValueStore service.
+type KeyValueStoreServer interface {
+	Get(context.Context, *GetRequest) (*GetResponse, error)
+	Put(context.Context, *PutRequest) (*PutResponse, error)
+}
+
+func RegisterKeyValueStoreServer(s *grpc.Server, srv KeyValueStoreServer) {
+	s.RegisterService(&_KeyValueStore_serviceDesc, srv)
+}
+
+func _KeyValueStore_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KeyValueStoreServer).Get(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/kvstore.KeyValueStore/Get",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KeyValueStoreServer).Get(ctx, req.(*GetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _KeyValueStore_Put_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KeyValueStoreServer).Put(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/kvstore.KeyValueStore/Put",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KeyValueStoreServer).Put(ctx, req.(*PutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _KeyValueStore_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "kvstore.KeyValueStore",
+	HandlerType: (*KeyValueStoreServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Get",
+			Handler:    _KeyValueStore_Get_Handler,
+		},
+		{
+			MethodName: "Put",
+			Handler:    _KeyValueStore_Put_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "kvstore.proto",
 }
