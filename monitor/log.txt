@@ -1,0 +1,83 @@
+2019/06/02 05:55:08 low:connection:Connecting to localhost:8000
+2019/06/02 05:55:08 low:connection:Connecting to localhost:8001
+2019/06/02 05:55:08 low:connection:Connecting to localhost:8002
+2019/06/02 05:55:08 low:connection:Failed to listen on the port. listen tcp: address :localhost:9000: too many colons in address
+2019/06/02 05:55:08 low:connection:Listening on localhost:9000
+2019/06/02 05:56:33 low:connection:Connecting to localhost:8000
+2019/06/02 05:56:33 low:connection:Connecting to localhost:8001
+2019/06/02 05:56:33 low:connection:Connecting to localhost:8002
+2019/06/02 05:56:33 low:connection:Listening on localhost:9000
+2019/06/02 05:59:22 low:connection:Connecting to localhost:8000
+2019/06/02 05:59:22 low:connection:Connecting to localhost:8001
+2019/06/02 05:59:22 low:connection:Connecting to localhost:8002
+2019/06/02 05:59:22 low:connection:Listening on localhost:9000
+2019/06/02 05:59:27 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 05:59:27 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 05:59:27 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 05:59:27 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 05:59:29 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 05:59:29 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 05:59:30 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 05:59:30 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 05:59:31 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 05:59:31 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 05:59:32 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 05:59:32 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:01:57 low:connection:Connecting to localhost:8000
+2019/06/02 06:01:57 low:connection:Connecting to localhost:8001
+2019/06/02 06:01:57 low:connection:Connecting to localhost:8002
+2019/06/02 06:01:57 low:connection:Listening on localhost:9000
+2019/06/02 06:02:12 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 06:02:13 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:14 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:15 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:16 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:17 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:18 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:19 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:20 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:21 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:22 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:23 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:24 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:02:25 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:05:47 low:connection:Connecting to localhost:8000
+2019/06/02 06:05:47 low:connection:Connecting to localhost:8001
+2019/06/02 06:05:47 low:connection:Connecting to localhost:8002
+2019/06/02 06:05:47 low:connection:Listening on localhost:9000
+2019/06/02 06:05:56 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 06:05:56 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:05:58 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 06:05:58 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:00 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 06:06:00 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:00 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:02 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 06:06:02 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:02 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:04 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 06:06:04 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:04 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:06 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:06 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:08 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:08 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:10 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:10 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:12 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:06:12 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:10:28 low:connection:Connecting to localhost:8002
+2019/06/02 06:10:28 low:connection:Connecting to localhost:8001
+2019/06/02 06:10:28 low:connection:Connecting to localhost:8000
+2019/06/02 06:10:28 low:connection:Listening on localhost:9000
+2019/06/02 06:10:36 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 06:10:36 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:10:38 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 06:10:38 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:10:40 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 06:10:40 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:10:40 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:10:42 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)
+2019/06/02 06:10:42 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:10:42 high:send:msg to localhost:8002 was dropped (DeadlineExceeded)
+2019/06/02 06:10:43 high:send:msg to localhost:8001 was dropped (DeadlineExceeded)

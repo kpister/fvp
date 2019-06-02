@@ -8,6 +8,7 @@ import (
 
 	fvp "github.com/kpister/fvp/server/proto/fvp"
 	kv "github.com/kpister/fvp/server/proto/kvstore"
+	mon "github.com/kpister/fvp/server/proto/monitor"
 
 	"context"
 	"fmt"
@@ -38,48 +39,57 @@ type node struct {
 	NodesState        map[string]fvp.SendMsg_State
 	NodesQuorumSlices map[string][][]string
 	StateCounter      int32
-	NodesFvpClients   map[string]fvp.ServerClient
-	NodesAddrs        map[string]string
-	Dictionary        map[string]string
+	// NodesFvpClients   map[string]fvp.ServerClient
+	NodesAddrs    map[string]string
+	Dictionary    map[string]string
+	MonitorClient mon.MonitorClient
+}
+
+func (n *node) getNeighbors() []string {
+	neighbors := make([]string, 0)
+	for _, slice := range n.NodesQuorumSlices[n.ID] {
+		for _, neighbor := range slice {
+			// don't add yourself
+			if neighbor == n.ID {
+				continue
+			}
+			// don't add twice
+			if inArray(neighbors, neighbor) {
+				continue
+			}
+
+			neighbors = append(neighbors, neighbor)
+		}
+	}
+	return neighbors
 }
 
 func (n *node) broadcast() {
-	sent := make([]string, 0)
 
 	// build arguments, list of states
 	ks := make([]*fvp.SendMsg_State, 0)
 	for _, state := range n.NodesState {
 		ks = append(ks, &state)
 	}
-	args := &fvp.SendMsg{KnownStates: ks}
+	sendmsg := &fvp.SendMsg{KnownStates: ks}
 
-	// for every neighbor send the message
-	for _, slice := range n.NodesQuorumSlices[n.ID] {
-		for _, neighbor := range slice {
+	neighbors := n.getNeighbors()
 
-			// don't send to yourself
-			if neighbor == n.ID {
-				continue
-			}
-
-			// don't send twice
-			if inArray(sent, neighbor) {
-				continue
-			}
-			sent = append(sent, neighbor)
-
-			// Log("low", "broadcast", "broadcasting to "+neighbor)
-			// TODO add cancel?
-			ctx, _ := context.WithTimeout(
-				context.Background(),
-				time.Duration(100)*time.Millisecond)
-
-			_, err := n.NodesFvpClients[neighbor].Send(ctx, args)
-			if err != nil {
-				n.errorHandler(err, "broadcast", neighbor)
-			}
-		}
+	args := &mon.MonitorSendMsg{
+		From: n.ID,
+		To:   neighbors,
+		Msg:  sendmsg,
 	}
+
+	ctx, _ := context.WithTimeout(
+		context.Background(),
+		time.Duration(1000)*time.Millisecond)
+
+	_, err := n.MonitorClient.MonitorSend(ctx, args)
+	if err != nil {
+		n.errorHandler(err, "broadcast", *monitorAddr)
+	}
+
 }
 
 func (n *node) updateStates(states []*fvp.SendMsg_State) {
@@ -385,7 +395,7 @@ func (n *node) createNode() {
 	// n.NodesAddrs = make(map[string]string, 0)
 	n.NodesState = make(map[string]fvp.SendMsg_State, 0)
 	// n.NodesQuorumSlices = make(map[string][][]string, 0)
-	n.NodesFvpClients = make(map[string]fvp.ServerClient, 0)
+	// n.NodesFvpClients = make(map[string]fvp.ServerClient, 0)
 
 	// append our own state to Nodesstate
 	ourSlices := make([]*fvp.SendMsg_Slice, 0)
@@ -413,34 +423,28 @@ func (n *node) createNode() {
 	n.Dictionary = make(map[string]string, 0)
 }
 
-func (n *node) buildClients() {
+func (n *node) connectMonitor() {
 	// grpc will retry in 20 ms at most 5 times when failed
 	opts := []grpc_retry.CallOption{
 		grpc_retry.WithMax(5),
-		grpc_retry.WithPerRetryTimeout(20 * time.Millisecond),
+		grpc_retry.WithPerRetryTimeout(1000 * time.Millisecond),
 	}
 
-	for _, addr := range n.NodesAddrs {
-		if addr == n.ID {
-			continue
-		}
-
-		Log("low", "connection", "Connecting to "+n.NodesAddrs[addr])
-
-		conn, err := grpc.Dial(n.NodesAddrs[addr], grpc.WithInsecure(),
-			grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)))
-		if err != nil {
-			Log("low", "connection", fmt.Sprintf("Failed to connect to %s. %v\n", n.NodesAddrs[addr], err))
-		}
-
-		n.NodesFvpClients[addr] = fvp.NewServerClient(conn)
+	// connect to the monitor
+	conn, err := grpc.Dial(*monitorAddr, grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)))
+	if err != nil {
+		Log("low", "connection", fmt.Sprintf("Failed to connect to %s. %v\n", *monitorAddr, err))
 	}
+	n.MonitorClient = mon.NewMonitorClient(conn)
 }
 
 var (
-	n          *node
-	configFile = flag.String("config", "cfg.json", "the file to read the configuration from")
-	help       = flag.Bool("h", false, "for usage")
+	n           *node
+	configFile  = flag.String("config", "cfg.json", "the file to read the configuration from")
+	printmap    = flag.Bool("print", false, "prints state")
+	help        = flag.Bool("h", false, "for usage")
+	monitorAddr = flag.String("mon", "localhost:9000", "the address of the monitor")
 )
 
 func init() {
@@ -481,7 +485,7 @@ func main() {
 	// n.NodesAddrs[n.ID] = "localhost:8000"
 
 	// setup grpc
-	lis, err := net.Listen("tcp", ":"+strings.Split(n.NodesAddrs[n.ID], ":")[1])
+	lis, err := net.Listen("tcp", ":"+strings.Split(n.ID, ":")[1])
 	if err != nil {
 		Log("low", "connection", fmt.Sprintf("Failed to listen on the port. %v", err))
 	}
@@ -489,15 +493,17 @@ func main() {
 	grpcServer := grpc.NewServer()
 	fvp.RegisterServerServer(grpcServer, n)
 	kv.RegisterKeyValueStoreServer(grpcServer, n)
-	n.buildClients()
+	n.connectMonitor()
 
-	Log("low", "connection", "Listening on "+n.NodesAddrs[n.ID])
+	Log("low", "connection", "Listening on "+n.ID)
 
 	ticker := time.NewTicker(2000 * time.Millisecond)
 	go func() {
 		for range ticker.C {
 			// spew.Dump(n.NodesState)
-			// prettyPrintMap(n.NodesState)
+			if *printmap {
+				prettyPrintMap(n.NodesState)
+			}
 			go n.broadcast()
 		}
 	}()

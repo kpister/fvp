@@ -2,10 +2,18 @@ syntax = "proto3";
 
 package monitor;
 
+import "github.com/kpister/fvp/server/proto/fvp/fvp.proto";
+
 service Monitor {
-    rpc UploadConnMap(ConnMap) returns (ReturnMessage) {}
+    rpc MonitorSend(MonitorSendMsg) returns (EmptyMessage) {}
     rpc GetState(EmptyMessage) returns (ServerState) {}
-    rpc SetEvil(BoolMessage) returns (ReturnMessage) {}
+    
+}
+
+message MonitorSendMsg {
+    string from = 1;
+    repeated string to = 2;
+    fvp.SendMsg msg = 3;
 }
 
 enum ReturnCode {
@@ -13,23 +21,7 @@ enum ReturnCode {
     FAILURE = 1;
 }
 
-message ConnMap {
-    message MapEntry {
-        string ip = 1;
-        bool conn = 2;
-    }
-    repeated MapEntry entries = 1;
-}
-
 message EmptyMessage {}
-
-message BoolMessage {
-    bool flag = 1;
-}
-
-message ReturnMessage {
-    ReturnCode rc = 1;
-}
 
 message ServerState {
     string id = 1;

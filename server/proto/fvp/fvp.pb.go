@@ -8,6 +8,8 @@ import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -275,6 +277,14 @@ func (c *serverClient) Send(ctx context.Context, in *SendMsg, opts ...grpc.CallO
 // ServerServer is the server API for Server service.
 type ServerServer interface {
 	Send(context.Context, *SendMsg) (*EmptyMessage, error)
+}
+
+// UnimplementedServerServer can be embedded to have forward compatible implementations.
+type UnimplementedServerServer struct {
+}
+
+func (*UnimplementedServerServer) Send(ctx context.Context, req *SendMsg) (*EmptyMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Send not implemented")
 }
 
 func RegisterServerServer(s *grpc.Server, srv ServerServer) {

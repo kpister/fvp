@@ -1,0 +1,5 @@
+{
+    "Address": "localhost:9000",
+    "ServerAddrs": ["localhost:8000", "localhost:8001", "localhost:8002"],
+    "FailedNodesAddrs" : []
+}
