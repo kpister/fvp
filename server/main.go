@@ -316,6 +316,25 @@ func (n *node) checkQuorumForVoteStatement(statement string) []string {
 	return nodesInQuorum
 }
 
+func canVote(stmt string, list []string) bool {
+	// assert stmt key is not in list, or if it is stmt value = list[key]
+	pieces := strings.Split(stmt, "=")
+	// assert len(pieces) == 2
+	stmt_key := pieces[0]
+	stmt_value := pieces[1]
+	for _, s_ := range list {
+		// key=value
+		pieces = strings.Split(s_, "=")
+		key := pieces[0]
+		value := pieces[1]
+
+		if key == stmt_key && value != stmt_value {
+			return false
+		}
+	}
+	return true
+}
+
 func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, error) {
 	// Log("low", "send", "Send received")
 	n.updateStates(in.KnownStates)
@@ -324,9 +343,16 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 	votedForStmt2Nodes, acceptedStmt2Nodes := n.getStatements()
 
 	update := false
+	votedFor := n.NodesState[n.ID].VotedFor
 	accepted := n.NodesState[n.ID].Accepted
 	confirmed := n.NodesState[n.ID].Confirmed
+
 	for stmt, nodes := range votedForStmt2Nodes {
+		if canVote(stmt, votedFor) && canVote(stmt, accepted) {
+			votedFor = append(votedFor, stmt)
+			nodes = append(nodes, n.ID)
+			update = true
+		}
 		if n.checkQuorum(nodes) {
 			if !inArray(accepted, stmt) {
 				accepted = append(accepted, stmt)
@@ -336,8 +362,19 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 	}
 
 	for stmt, nodes := range acceptedStmt2Nodes {
+		if canVote(stmt, accepted) && canVote(stmt, votedFor) {
+			votedFor = append(votedFor, stmt)
+			update = true
+		}
+
+		if !canVote(stmt, accepted) {
+			// maybe stuck?
+			continue
+		}
+
 		if n.checkQuorum(nodes) {
 			if !inArray(confirmed, stmt) {
+				// log put end
 				confirmed = append(confirmed, stmt)
 				update = true
 			}
@@ -354,7 +391,7 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 		n.NodesState[n.ID] = fvp.SendMsg_State{
 			Id:           n.ID,
 			Accepted:     accepted,
-			VotedFor:     n.NodesState[n.ID].VotedFor,
+			VotedFor:     votedFor,
 			Confirmed:    confirmed,
 			QuorumSlices: n.NodesState[n.ID].QuorumSlices,
 			Counter:      n.StateCounter,
@@ -375,7 +412,23 @@ func (n *node) Get(ctx context.Context, in *kv.GetRequest) (*kv.GetResponse, err
 
 func (n *node) Put(ctx context.Context, in *kv.PutRequest) (*kv.PutResponse, error) {
 	// set value in dictionary
-	n.Dictionary[in.Key] = in.Value
+	// TODO log put start
+
+	stmt := in.Key + "=" + in.Value
+	votedFor := n.NodesState[n.ID].VotedFor
+	if !canVote(stmt, votedFor) {
+		return &kv.PutResponse{Ret: kv.ReturnCode_FAILURE}, nil
+	}
+
+	n.StateCounter++
+	n.NodesState[n.ID] = fvp.SendMsg_State{
+		Id:           n.ID,
+		Accepted:     n.NodesState[n.ID].Accepted,
+		VotedFor:     append(votedFor, stmt),
+		Confirmed:    n.NodesState[n.ID].Confirmed,
+		QuorumSlices: n.NodesState[n.ID].QuorumSlices,
+		Counter:      n.StateCounter,
+	}
 
 	return &kv.PutResponse{Ret: kv.ReturnCode_SUCCESS}, nil
 }
