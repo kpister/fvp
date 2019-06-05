@@ -57,14 +57,14 @@ if __name__ == '__main__':
             print(f'Executing: {cmd}')
             client.exec_command(cmd)
 
-        cmd = "nohup /home/ec2-user/start.sh &\n"
+        cmd = "/home/ec2-user/start.sh\n"
 
         transport = client.get_transport()
         channel = transport.open_session()
         pty = channel.get_pty()
         shell = client.invoke_shell()
-        #shell.send(cmd)
-        time.sleep(2)
+        shell.send(cmd)
+        time.sleep(5)
 
         shell.close()
         channel.close()
