@@ -68,7 +68,7 @@ def main():
             qs = _addrs[:qs_sz]
             node_qs_cfg["qs_slices"].append(qs)
 
-        args.output_qs_cfg.write(str(node_qs_cfg) + "\n")
+        args.output_qs_cfg.write(addrs[node_i] + "~" + str(node_qs_cfg) + "\n")
 
 if __name__ == "__main__":
     main()
