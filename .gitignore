@@ -1,3 +1,7 @@
 monitor/monitor
 server/server
 client/client
+remote/*.cfg
+*.cfg
+*.txt
+remote/*.txt

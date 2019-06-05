@@ -1,5 +1,6 @@
 import argparse
 import random 
+import json
 
 """
 Usage:
@@ -55,9 +56,10 @@ def main():
             failure_type = "NONE"
 
         node_qs_cfg = {
-            "qs_slices": [],
-            "evil": is_evil,
-            "failure_type": failure_type,
+            "QsSlices": [],
+            "Evil": is_evil,
+            "FailureType": failure_type,
+            "ID": addrs[node_i],
         }
         n_qs = random.randint(1, args.max_n_qs)
 
@@ -66,9 +68,9 @@ def main():
             _addrs = addrs[:node_i] + addrs[node_i+1:]
             random.shuffle(_addrs)
             qs = _addrs[:qs_sz]
-            node_qs_cfg["qs_slices"].append(qs)
+            node_qs_cfg["QsSlices"].append(qs)
 
-        args.output_qs_cfg.write(addrs[node_i] + "~" + str(node_qs_cfg) + "\n")
+        args.output_qs_cfg.write(addrs[node_i] + "~" + json.dumps(node_qs_cfg) + "\n")
 
 if __name__ == "__main__":
     main()
