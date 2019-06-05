@@ -3,12 +3,50 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
+	"path"
+	"strconv"
 	"strings"
+	"time"
 )
 
+func measurePut(n int, c *client, seq int32, logFp *os.File) int32 {
+	for i := 0; i < n; i++ {
+		key := fmt.Sprintf("key%d", i)
+		val := fmt.Sprintf("val%d", i)
+		t := time.Now()
+		c.MessagePut(0, key, val, seq)
+		timeTrack(t, "PUT", logFp)
+		seq++
+	}
+	return seq
+}
+
+func measureGet(n int, c *client, logFp *os.File) {
+	for i := 0; i < n; i++ {
+		key := fmt.Sprintf("key%d", i)
+		t := time.Now()
+		c.MessageGet(0, key)
+		timeTrack(t, "GET", logFp)
+	}
+}
+
+func timeTrack(start time.Time, task string, logFp *os.File) {
+	elapsed := time.Since(start)
+	if logFp != nil {
+		logFp.WriteString(fmt.Sprintf("%s duration:%d\n", task, elapsed))
+	}
+}
+
 func main() {
+	path := path.Join(os.Getenv("LOCAL"), "client_benchmark.txt")
+	logFp, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatalf("Open log file error: %v\n", err)
+	}
+
 	inputReader := bufio.NewReader(os.Stdin)
 	client := createClient("client")
 	seqNumber := (int32)(rand.Int31n(1000000000))
@@ -69,6 +107,14 @@ func main() {
 			}
 
 			client.Id = splits[1]
+
+		case "PUT_N":
+			n, _ := strconv.Atoi(splits[1])
+			seqNumber = measurePut(n, client, seqNumber, logFp)
+
+		case "GET_N":
+			n, _ := strconv.Atoi(splits[1])
+			measureGet(n, client, logFp)
 		}
 	}
 }
