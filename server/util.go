@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"strings"
 
 	fvp "github.com/kpister/fvp/server/proto/fvp"
 )
@@ -99,6 +100,34 @@ func getVoteTC4(id string) string {
 	}
 	return "b=1" // for localhost:8004
 
+}
+
+func convertQuorumSlices(qs []*fvp.SendMsg_Slice) [][]string {
+	ret := make([][]string, 0)
+
+	for _, el := range qs {
+		ret = append(ret, el.Nodes)
+	}
+	return ret
+}
+
+func canVote(stmt string, list []string) bool {
+	// assert stmt key is not in list, or if it is stmt value = list[key]
+	pieces := strings.Split(stmt, "=")
+	// assert len(pieces) == 2
+	stmt_key := pieces[0]
+	stmt_value := pieces[1]
+	for _, s_ := range list {
+		// key=value
+		pieces = strings.Split(s_, "=")
+		key := pieces[0]
+		value := pieces[1]
+
+		if key == stmt_key && value != stmt_value {
+			return false
+		}
+	}
+	return true
 }
 
 // func resizeSlice(a []*raft.Entry, newSize int) []*raft.Entry {
