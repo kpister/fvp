@@ -68,7 +68,7 @@ func (n *node) broadcast() {
 			}
 			sent = append(sent, neighbor)
 
-			// Log("low", "broadcast", "broadcasting to "+neighbor)
+			// Log("broadcast", "broadcasting to "+neighbor)
 			// TODO add cancel?
 			ctx, _ := context.WithTimeout(
 				context.Background(),
@@ -87,10 +87,10 @@ func (n *node) updateStates(states []*fvp.SendMsg_State) {
 
 		if prevState, ok := n.NodesState[state.Id]; !ok {
 			n.NodesState[state.Id] = *state
-			Log("low", "send", "updating state of "+state.Id+"for first time")
+			Log("send", "updating state of "+state.Id+"for first time")
 		} else if state.Counter > prevState.Counter {
 			n.NodesState[state.Id] = *state
-			Log("low", "send", "updating state of "+state.Id+"for updated counter")
+			Log("send", "updating state of "+state.Id+"for updated counter")
 		}
 	}
 }
@@ -336,7 +336,6 @@ func canVote(stmt string, list []string) bool {
 }
 
 func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, error) {
-	// Log("low", "send", "Send received")
 	n.updateStates(in.KnownStates)
 	n.updateQuorumSlices(in.KnownStates)
 
@@ -355,6 +354,7 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 		}
 		if n.checkQuorum(nodes) {
 			if !inArray(accepted, stmt) {
+				Log("put", stmt+" accept")
 				accepted = append(accepted, stmt)
 				update = true
 			}
@@ -369,12 +369,13 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 
 		if !canVote(stmt, accepted) {
 			// maybe stuck?
+			Log.log("send", "stuck")
 			continue
 		}
 
 		if n.checkQuorum(nodes) {
 			if !inArray(confirmed, stmt) {
-				// log put end
+				Log("put", stmt+" end")
 				confirmed = append(confirmed, stmt)
 				update = true
 			}
@@ -412,9 +413,9 @@ func (n *node) Get(ctx context.Context, in *kv.GetRequest) (*kv.GetResponse, err
 
 func (n *node) Put(ctx context.Context, in *kv.PutRequest) (*kv.PutResponse, error) {
 	// set value in dictionary
-	// TODO log put start
 
 	stmt := in.Key + "=" + in.Value
+	Log("put", stmt+" start")
 	votedFor := n.NodesState[n.ID].VotedFor
 	if !canVote(stmt, votedFor) {
 		return &kv.PutResponse{Ret: kv.ReturnCode_FAILURE}, nil
@@ -455,7 +456,7 @@ func (n *node) createNode() {
 		Counter:      0,
 		Id:           n.ID,
 		QuorumSlices: ourSlices,
-		VotedFor:     []string{getVote(0.6, "a", "b")},
+		VotedFor:     make([]string, 0),
 	}
 	n.NodesState[n.ID] = ourState
 
@@ -478,12 +479,12 @@ func (n *node) buildClients() {
 			continue
 		}
 
-		Log("low", "connection", "Connecting to "+n.NodesAddrs[addr])
+		Log("connection", "Connecting to "+n.NodesAddrs[addr])
 
 		conn, err := grpc.Dial(n.NodesAddrs[addr], grpc.WithInsecure(),
 			grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)))
 		if err != nil {
-			Log("low", "connection", fmt.Sprintf("Failed to connect to %s. %v\n", n.NodesAddrs[addr], err))
+			Log("connection", fmt.Sprintf("Failed to connect to %s. %v\n", n.NodesAddrs[addr], err))
 		}
 
 		n.NodesFvpClients[addr] = fvp.NewServerClient(conn)
@@ -536,7 +537,7 @@ func main() {
 	// setup grpc
 	lis, err := net.Listen("tcp", ":"+strings.Split(n.NodesAddrs[n.ID], ":")[1])
 	if err != nil {
-		Log("low", "connection", fmt.Sprintf("Failed to listen on the port. %v", err))
+		Log("connection", fmt.Sprintf("Failed to listen on the port. %v", err))
 	}
 
 	grpcServer := grpc.NewServer()
@@ -544,7 +545,7 @@ func main() {
 	kv.RegisterKeyValueStoreServer(grpcServer, n)
 	n.buildClients()
 
-	Log("low", "connection", "Listening on "+n.NodesAddrs[n.ID])
+	Log("connection", "Listening on "+n.NodesAddrs[n.ID])
 
 	ticker := time.NewTicker(2000 * time.Millisecond)
 	go func() {
