@@ -17,7 +17,6 @@ import (
 	"strings"
 	"time"
 
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
 )
 
@@ -40,11 +39,12 @@ type node struct {
 	IsEvil            bool
 	Strategy          string
 	QsSlices          [][]string // set for cfg file
+
+	BroadcastTimeout int
 }
 
 func (n *node) broadcast() {
 	if !n.IsEvil {
-		sent := make([]string, 0)
 
 		// build arguments, list of states
 		ks := make([]*fvp.SendMsg_State, 0)
@@ -54,32 +54,16 @@ func (n *node) broadcast() {
 		args := &fvp.SendMsg{KnownStates: ks}
 
 		// for every neighbor send the message
-		for _, slice := range n.NodesQuorumSlices[n.ID] {
-			for _, neighbor := range slice {
 
-				// don't send to yourself
-				if neighbor == n.ID {
-					continue
-				}
+		for _, neighbor := range n.NodesAddrs {
+			ctx := context.Background()
 
-				// don't send twice
-				if inArray(sent, neighbor) {
-					continue
-				}
-				sent = append(sent, neighbor)
-
-				// Log("low", "broadcast", "broadcasting to "+neighbor)
-				// TODO add cancel?
-				ctx, _ := context.WithTimeout(
-					context.Background(),
-					timeout)
-
-				_, err := n.NodesFvpClients[neighbor].Send(ctx, args)
-				if err != nil {
-					n.errorHandler(err, "broadcast", neighbor)
-				}
+			_, err := n.NodesFvpClients[neighbor].Send(ctx, args)
+			if err != nil {
+				n.errorHandler(err, "broadcast", neighbor)
 			}
 		}
+
 	} else {
 		n.evilBehavior(n.Strategy)
 	}
@@ -172,7 +156,7 @@ func (n *node) evilBehavior(strategy string) {
 				}
 			}
 		} else {
-			Log("medium", "broadcast", "Invalid evil strategy")
+			Log("broadcast", "Invalid evil strategy")
 		}
 
 		// prettyPrintMap(n.NodesState)
@@ -189,11 +173,7 @@ func (n *node) evilBehavior(strategy string) {
 		}
 
 		args := &fvp.SendMsg{KnownStates: ks}
-		// fmt.Println("to", addr)
-		// prettyPrintMap(args)
-		ctx, _ := context.WithTimeout(
-			context.Background(),
-			timeout)
+		ctx := context.Background()
 
 		_, err := n.NodesFvpClients[addr].Send(ctx, args)
 		if err != nil {
@@ -209,10 +189,10 @@ func (n *node) updateStates(states []*fvp.SendMsg_State) {
 
 		if prevState, ok := n.NodesState[state.Id]; !ok {
 			n.NodesState[state.Id] = *state
-			Log("send", "updating state of "+state.Id+"for first time")
+			Log("send", "updating state of "+state.Id+" for first time")
 		} else if state.Counter > prevState.Counter {
 			n.NodesState[state.Id] = *state
-			Log("send", "updating state of "+state.Id+"for updated counter")
+			Log("send", "updating state of "+state.Id+" for updated counter")
 		}
 	}
 }
@@ -375,7 +355,7 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 
 		if !canVote(stmt, accepted) {
 			// maybe stuck?
-			Log("send", "stuck")
+			Log("send", "can't accept "+stmt)
 			continue
 		}
 
@@ -483,18 +463,12 @@ func (n *node) createNode() {
 }
 
 func (n *node) buildClients() {
-	// grpc will retry in 20 ms at most 5 times when failed
-	opts := []grpc_retry.CallOption{
-		grpc_retry.WithMax(5),
-		grpc_retry.WithPerRetryTimeout(timeout),
-	}
 
 	for _, addr := range n.NodesAddrs {
 
 		Log("connection", "Connecting to "+addr)
 
-		conn, err := grpc.Dial(addr, grpc.WithInsecure(),
-			grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)))
+		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
 			Log("connection", fmt.Sprintf("Failed to connect to %s. %v\n", addr, err))
 		}
@@ -508,7 +482,6 @@ var (
 	configFile = flag.String("config", "cfg.json", "the file to read the configuration from")
 	print      = flag.Bool("print", false, "to print the state")
 	help       = flag.Bool("h", false, "for usage")
-	timeout    = 100 * time.Millisecond
 )
 
 func init() {
@@ -541,10 +514,8 @@ func main() {
 
 	// TODO: remove this. directly assign log path, id, and address for now
 
-	// os.MkdirAll(path.Join(os.Getenv("HOME"), n.ID), 0755)
-	// setupLog(path.Join(os.Getenv("HOME"), n.ID, "log.txt"))
-	os.MkdirAll(path.Join(os.Getenv("LOCAL"), n.ID), 0755)
-	setupLog(path.Join(os.Getenv("LOCAL"), n.ID, "log.txt"))
+	os.MkdirAll(path.Join(os.Getenv("HOME"), n.ID), 0755)
+	setupLog(path.Join(os.Getenv("HOME"), n.ID, "log.txt"))
 
 	// setup grpc
 	lis, err := net.Listen("tcp", ":"+strings.Split(n.ID, ":")[1])
@@ -559,7 +530,7 @@ func main() {
 
 	Log("connection", "Listening on "+n.ID)
 
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(time.Duration(n.BroadcastTimeout) * time.Millisecond)
 	go func() {
 		for range ticker.C {
 			// spew.Dump(n.NodesState)

@@ -57,9 +57,10 @@ def main():
 
         node_qs_cfg = {
             "QsSlices": [],
-            "Evil": is_evil,
-            "FailureType": failure_type,
+            "IsEvil": is_evil,
+            "Strategy": failure_type,
             "ID": addrs[node_i],
+            "BroadcastTimeout": 50,
         }
         n_qs = random.randint(1, args.max_n_qs)
 
