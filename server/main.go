@@ -22,12 +22,8 @@ import (
 )
 
 /*
-* TODO: add json loading of configs -- 1 -- kaiser
-* TODO: add error handler -- 1 -- Yu-Wun
 * TODO: consider non-unanimous votes in quorum slice based on threshold % -- inf -- .
-* TODO: write get/set client -- 2 -- Kaiser
 * TODO: write monitor getstate -- 3 -- everyone
-* TODO: setup remote -- 4 -- .
 * TODO: test, test, test -- 5 -- everyone
 * TODO: run benchmarks -- last -- everyone
 * TODO: write report
@@ -35,12 +31,15 @@ import (
 
 type node struct {
 	ID                string
-	NodesState        map[string]fvp.SendMsg_State
-	NodesQuorumSlices map[string][][]string
-	StateCounter      int32
+	NodesState        map[string]fvp.SendMsg_State // map node id to node state
+	NodesQuorumSlices map[string][][]string        // map node id to quorum slices
+	StateCounter      int32                        // track the number of transition of this node
 	NodesFvpClients   map[string]fvp.ServerClient
-	NodesAddrs        map[string]string
-	Dictionary        map[string]string
+	NodesAddrs        []string          // list of all neighbors in quorum slices
+	Dictionary        map[string]string // the kv store
+	Evil              bool
+	FailureType       string
+	QsSlices          [][]string // set for cfg file
 }
 
 func (n *node) broadcast() {
@@ -435,33 +434,38 @@ func (n *node) Put(ctx context.Context, in *kv.PutRequest) (*kv.PutResponse, err
 
 func (n *node) createNode() {
 
-	// n.NodesAddrs = make(map[string]string, 0)
+	n.NodesAddrs = make([]string, 0)
 	n.NodesState = make(map[string]fvp.SendMsg_State, 0)
-	// n.NodesQuorumSlices = make(map[string][][]string, 0)
+	n.NodesQuorumSlices = make(map[string][][]string, 0)
 	n.NodesFvpClients = make(map[string]fvp.ServerClient, 0)
 
-	// append our own state to Nodesstate
+	// Build our own slices
 	ourSlices := make([]*fvp.SendMsg_Slice, 0)
-	for _, slice := range n.NodesQuorumSlices[n.ID] {
+	for _, slice := range n.QsSlices {
+		for _, node := range slice {
+			if !inArray(n.NodesAddrs, node) {
+				n.NodesAddrs = append(n.NodesAddrs, node)
+			}
+		}
 		s := &fvp.SendMsg_Slice{
 			Nodes: slice,
 		}
 		ourSlices = append(ourSlices, s)
 	}
 
+	// set our entry in NodesQuorumSlices
+	n.NodesQuorumSlices[n.ID] = n.QsSlices
+
+	// append our own state to NodesState
 	ourState := fvp.SendMsg_State{
 		Accepted:     make([]string, 0),
 		Confirmed:    make([]string, 0),
+		VotedFor:     make([]string, 0),
 		Counter:      0,
 		Id:           n.ID,
 		QuorumSlices: ourSlices,
-		VotedFor:     []string{getVote(0.6, "a", "b")},
 	}
 	n.NodesState[n.ID] = ourState
-
-	// fmt.Println(n.NodesQuorumSlices)
-	// fmt.Println(n.NodesAddrs)
-	// fmt.Println(n.ID)
 
 	n.Dictionary = make(map[string]string, 0)
 }
@@ -474,16 +478,13 @@ func (n *node) buildClients() {
 	}
 
 	for _, addr := range n.NodesAddrs {
-		if addr == n.ID {
-			continue
-		}
 
-		Log("low", "connection", "Connecting to "+n.NodesAddrs[addr])
+		Log("low", "connection", "Connecting to "+addr)
 
-		conn, err := grpc.Dial(n.NodesAddrs[addr], grpc.WithInsecure(),
+		conn, err := grpc.Dial(addr, grpc.WithInsecure(),
 			grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(opts...)))
 		if err != nil {
-			Log("low", "connection", fmt.Sprintf("Failed to connect to %s. %v\n", n.NodesAddrs[addr], err))
+			Log("low", "connection", fmt.Sprintf("Failed to connect to %s. %v\n", addr, err))
 		}
 
 		n.NodesFvpClients[addr] = fvp.NewServerClient(conn)
@@ -491,7 +492,7 @@ func (n *node) buildClients() {
 }
 
 var (
-	n          *node
+	n          node
 	configFile = flag.String("config", "cfg.json", "the file to read the configuration from")
 	help       = flag.Bool("h", false, "for usage")
 )
@@ -531,20 +532,18 @@ func main() {
 	os.MkdirAll(path.Join(os.Getenv("LOCAL"), n.ID), 0755)
 	setupLog(path.Join(os.Getenv("LOCAL"), n.ID, "log.txt"))
 
-	// n.NodesAddrs[n.ID] = "localhost:8000"
-
 	// setup grpc
-	lis, err := net.Listen("tcp", ":"+strings.Split(n.NodesAddrs[n.ID], ":")[1])
+	lis, err := net.Listen("tcp", ":"+strings.Split(n.ID, ":")[1])
 	if err != nil {
 		Log("low", "connection", fmt.Sprintf("Failed to listen on the port. %v", err))
 	}
 
 	grpcServer := grpc.NewServer()
-	fvp.RegisterServerServer(grpcServer, n)
-	kv.RegisterKeyValueStoreServer(grpcServer, n)
+	fvp.RegisterServerServer(grpcServer, &n)
+	kv.RegisterKeyValueStoreServer(grpcServer, &n)
 	n.buildClients()
 
-	Log("low", "connection", "Listening on "+n.NodesAddrs[n.ID])
+	Log("low", "connection", "Listening on "+n.ID)
 
 	ticker := time.NewTicker(2000 * time.Millisecond)
 	go func() {
