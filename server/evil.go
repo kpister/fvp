@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	fvp "github.com/kpister/fvp/server/proto/fvp"
 	"math/rand"
 	"strconv"
 	"strings"
+
+	fvp "github.com/kpister/fvp/server/proto/fvp"
 )
 
 func (n *node) evilBehavior(strategy string) {
@@ -117,7 +118,7 @@ func (n *node) evilBehavior(strategy string) {
 			}
 		}
 
-		args := &fvp.SendMsg{KnownStates: ks}
+		args := &fvp.SendMsg{KnownStates: ks, Term: n.Term}
 		ctx := context.Background()
 
 		_, err := n.NodesFvpClients[addr].Send(ctx, args)

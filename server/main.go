@@ -47,9 +47,10 @@ func (n *node) broadcast() {
 		// build arguments, list of states
 		ks := make([]*fvp.SendMsg_State, 0)
 		for _, state := range n.NodesState {
-			ks = append(ks, &state)
+			temp := state
+			ks = append(ks, &temp)
 		}
-		args := &fvp.SendMsg{KnownStates: ks}
+		args := &fvp.SendMsg{KnownStates: ks, Term: n.Term}
 
 		// for every neighbor send the message
 

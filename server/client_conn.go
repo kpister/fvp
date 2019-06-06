@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	fvp "github.com/kpister/fvp/server/proto/fvp"
 	kv "github.com/kpister/fvp/server/proto/kvstore"
 )
@@ -17,6 +18,7 @@ func (n *node) IncrementTerm(ctx context.Context, in *kv.EmptyMessage) (*kv.Empt
 		QuorumSlices: n.NodesState[n.ID].QuorumSlices,
 	}
 
+	n.NodesState = make(map[string]fvp.SendMsg_State)
 	n.NodesState[n.ID] = ourState
 
 	return &kv.EmptyMessage{}, nil

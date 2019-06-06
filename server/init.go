@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	fvp "github.com/kpister/fvp/server/proto/fvp"
-	"google.golang.org/grpc"
 	"io/ioutil"
 	"os"
+
+	fvp "github.com/kpister/fvp/server/proto/fvp"
+	"google.golang.org/grpc"
 )
 
 func (n *node) buildClients() {
@@ -36,7 +37,7 @@ func (n *node) createNode() {
 	ourSlices := make([]*fvp.SendMsg_Slice, 0)
 	for _, slice := range n.QsSlices {
 		for _, node := range slice {
-			if !inArray(n.NodesAddrs, node) {
+			if !inArray(n.NodesAddrs, node) && node != n.ID {
 				n.NodesAddrs = append(n.NodesAddrs, node)
 			}
 		}
