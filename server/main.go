@@ -225,7 +225,7 @@ func main() {
 			if *print {
 				prettyPrintMap(n.NodesState)
 			}
-			go n.broadcast()
+			n.broadcast()
 		}
 	}()
 

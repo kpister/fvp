@@ -12,6 +12,7 @@ Options:
     -e, --evail_prob        Probability to be evil
     -mqz, --max_n_qs        Max number of quorum slices
     -mqsz, --max_qs_size    Max size of quorum slice
+    -bt, --broadcast_time   Timeout to send
     -h, --help              Print help message and exit
 """
 
@@ -25,6 +26,7 @@ def main():
     parser.add_argument("-e", "--evil_prob", metavar="evil_prob", nargs="?", default=0.0, type=float, help="Probability to be evil")
     parser.add_argument("-mqn", "--max_n_qs", metavar="max_n_qs", nargs="?", default=1, type=int, help="Max number of quorum slices")
     parser.add_argument("-mqsz", "--max_qs_size", metavar="max_qs_size", nargs="?", default=3, type=int, help="Max size of quorum slice")
+    parser.add_argument("-bt", "--broadcast_time", metavar="broadcast_time", nargs="?", default=10, type=int, help="Timeout to send")
     args = parser.parse_args()
 
     if args.network_size < 1:
@@ -60,7 +62,7 @@ def main():
             "IsEvil": is_evil,
             "Strategy": failure_type,
             "ID": addrs[node_i],
-            "BroadcastTimeout": 50,
+            "BroadcastTimeout": args.broadcast_time,
         }
         n_qs = random.randint(1, args.max_n_qs)
 

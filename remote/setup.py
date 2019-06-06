@@ -40,6 +40,17 @@ if __name__ == '__main__':
         ips[ip].append((f'{ip}:{port}', cfg))
 
     for ip in ips.keys():
+        print(f'Connecting to {ip}')
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(hostname=ip, username="ec2-user", pkey=pem)
+
+        cmd = f"pkill server"
+        print(f'Executing: {cmd}')
+        client.exec_command(cmd)
+        client.close()
+
+    for ip in ips.keys():
         # connect to server
         print(f'Connecting to {ip}')
         client = paramiko.SSHClient()
@@ -48,6 +59,10 @@ if __name__ == '__main__':
 
         # clear cfgs folder
         cmd = f"rm -f /home/ec2-user/cfgs/*"
+        print(f'Executing: {cmd}')
+        client.exec_command(cmd)
+
+        cmd = f"rm -f /home/ec2-user/logs/*"
         print(f'Executing: {cmd}')
         client.exec_command(cmd)
 
