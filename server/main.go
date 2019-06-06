@@ -163,6 +163,8 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 			if !inArray(confirmed, stmt) {
 				Log(n.Term, "put", stmt+" end")
 				confirmed = append(confirmed, stmt)
+				stmt_pieces := strings.Split(stmt, "=")
+				n.Dictionary[stmt_pieces[0]] = stmt_pieces[1]
 				update = true
 			}
 		} else if n.checkBlocking(nodes) { // assert statement is not in confict with any others we have voted for?
