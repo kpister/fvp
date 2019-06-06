@@ -87,11 +87,13 @@ func (n *node) updateStates(states []*fvp.SendMsg_State) {
 }
 
 func (n *node) updateQuorumSlices(states []*fvp.SendMsg_State) {
+	gl.Lock()
 	for _, state := range states {
 		if _, ok := n.NodesQuorumSlices[state.Id]; !ok {
 			n.NodesQuorumSlices[state.Id] = convertQuorumSlices(state.QuorumSlices)
 		}
 	}
+	gl.Unlock()
 }
 
 // get a map of a statement to a list of nodes that voted for/accepted it
