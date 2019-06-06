@@ -37,7 +37,7 @@ func setupLog(name string) {
 	valid_events = []string{"vote", "accept", "confirm", "broadcast", "connection", "send", "put"}
 
 	// open the file
-	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		log.Fatalf("Open log file error: %v\n", err)
 	}

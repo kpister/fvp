@@ -188,11 +188,7 @@ var (
 )
 
 func main() {
-
-	// TODO: remove this. directly assign log path, id, and address for now
-
-	os.MkdirAll(path.Join(os.Getenv("HOME"), n.ID), 0755)
-	setupLog(path.Join(os.Getenv("HOME"), n.ID, "log.txt"))
+	setupLog(path.Join(os.Getenv("HOME"), "logs", n.ID+".txt"))
 
 	// setup grpc
 	lis, err := net.Listen("tcp", ":"+strings.Split(n.ID, ":")[1])
