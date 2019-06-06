@@ -29,7 +29,7 @@ func (n *node) buildClients() {
 func (n *node) createNode() {
 
 	n.NodesAddrs = make([]string, 0)
-	n.NodesState = make(map[string]fvp.SendMsg_State, 0)
+	n.NodesState = make(map[string]*fvp.SendMsg_State, 0)
 	n.NodesQuorumSlices = make(map[string][][]string, 0)
 	n.NodesFvpClients = make(map[string]fvp.ServerClient, 0)
 
@@ -51,7 +51,7 @@ func (n *node) createNode() {
 	n.NodesQuorumSlices[n.ID] = n.QsSlices
 
 	// append our own state to NodesState
-	ourState := fvp.SendMsg_State{
+	ourState := &fvp.SendMsg_State{
 		Accepted:     make([]string, 0),
 		Confirmed:    make([]string, 0),
 		VotedFor:     make([]string, 0),

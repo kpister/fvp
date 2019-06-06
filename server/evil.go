@@ -111,7 +111,7 @@ func (n *node) evilBehavior(strategy string) {
 		for _, state := range n.NodesState {
 			if state.Id != n.ID { // don't lie about other's states
 				temp := state // for some wierd go thing
-				ks = append(ks, &temp)
+				ks = append(ks, temp)
 			} else {
 				temp := fakestate // for some wierd go thing
 				ks = append(ks, &temp)

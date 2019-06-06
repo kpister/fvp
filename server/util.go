@@ -26,6 +26,38 @@ Returns true if the message should be dropped otherwise returns false
 // 	return true
 // }
 
+func deepcopy(o *node) *node {
+	newStates := make(map[string]*fvp.SendMsg_State, 0)
+
+	for k, state := range o.NodesState {
+		stemp := *state
+		newStates[k] = &stemp
+	}
+
+	newNQS := make(map[string][][]string, 0)
+
+	for k, v := range o.NodesQuorumSlices {
+		newNQS[k] = v
+	}
+
+	n := &node{
+		ID:                o.ID,
+		NodesState:        newStates,
+		NodesQuorumSlices: newNQS,
+		StateCounter:      o.StateCounter,
+		NodesFvpClients:   o.NodesFvpClients,
+		NodesAddrs:        o.NodesAddrs,
+		Dictionary:        o.Dictionary,
+		IsEvil:            o.IsEvil,
+		Strategy:          o.Strategy,
+		QsSlices:          o.QsSlices,
+		Term:              o.Term,
+
+		BroadcastTimeout: o.BroadcastTimeout,
+	}
+	return n
+}
+
 func min(a, b int32) int32 {
 	if a < b {
 		return a

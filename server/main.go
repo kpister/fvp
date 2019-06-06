@@ -28,9 +28,9 @@ import (
 
 type node struct {
 	ID                string
-	NodesState        map[string]fvp.SendMsg_State // map node id to node state
-	NodesQuorumSlices map[string][][]string        // map node id to quorum slices
-	StateCounter      int32                        // track the number of transition of this node
+	NodesState        map[string]*fvp.SendMsg_State // map node id to node state
+	NodesQuorumSlices map[string][][]string         // map node id to quorum slices
+	StateCounter      int32                         // track the number of transition of this node
 	NodesFvpClients   map[string]fvp.ServerClient
 	NodesAddrs        []string          // list of all neighbors in quorum slices
 	Dictionary        map[string]string // the kv store
@@ -42,22 +42,22 @@ type node struct {
 	BroadcastTimeout int
 }
 
-func (n *node) broadcast() {
+func (o *node) broadcast() {
+	gl.Lock()
+	n := deepcopy(o)
+	gl.Unlock()
+
 	if !n.IsEvil {
 
 		// build arguments, list of states
 		ks := make([]*fvp.SendMsg_State, 0)
-		gl.Lock()
 		for _, state := range n.NodesState {
-			temp := state
-			ks = append(ks, &temp)
+			temp := state // for some wierd go thing
+			ks = append(ks, temp)
 		}
-		gl.Unlock()
 		args := &fvp.SendMsg{KnownStates: ks, Term: n.Term}
 
 		// for every neighbor send the message
-
-		gl.Lock()
 		for _, neighbor := range n.NodesAddrs {
 			ctx := context.Background()
 
@@ -66,29 +66,26 @@ func (n *node) broadcast() {
 				n.errorHandler(err, "broadcast", neighbor)
 			}
 		}
-		gl.Unlock()
 
 	} else {
 		n.evilBehavior(n.Strategy)
 	}
 }
 
-func (n *node) updateStates(states []*fvp.SendMsg_State) {
+func (o *node) updateStates(states []*fvp.SendMsg_State) {
 	for _, state := range states {
 
-		gl.Lock()
 		if prevState, ok := n.NodesState[state.Id]; !ok {
-			n.NodesState[state.Id] = *state
+			n.NodesState[state.Id] = state
 			Log(n.Term, "send", "updating state of "+state.Id+" for first time")
 		} else if state.Counter > prevState.Counter {
-			n.NodesState[state.Id] = *state
+			n.NodesState[state.Id] = state
 			Log(n.Term, "send", "updating state of "+state.Id+" for updated counter")
 		}
-		gl.Unlock()
 	}
 }
 
-func (n *node) updateQuorumSlices(states []*fvp.SendMsg_State) {
+func (o *node) updateQuorumSlices(states []*fvp.SendMsg_State) {
 	for _, state := range states {
 		if _, ok := n.NodesQuorumSlices[state.Id]; !ok {
 			n.NodesQuorumSlices[state.Id] = convertQuorumSlices(state.QuorumSlices)
@@ -97,10 +94,13 @@ func (n *node) updateQuorumSlices(states []*fvp.SendMsg_State) {
 }
 
 // get a map of a statement to a list of nodes that voted for/accepted it
-func (n *node) getStatements() (map[string][]string, map[string][]string) {
+func (o *node) getStatements() (map[string][]string, map[string][]string) {
+	gl.Lock()
+	n := deepcopy(o)
+	gl.Unlock()
+
 	votedForStmt2Nodes := make(map[string][]string, 0)
 	acceptedStmt2Nodes := make(map[string][]string, 0)
-	gl.Lock()
 	for node, state := range n.NodesState {
 		for _, statement := range state.VotedFor {
 			votedForStmt2Nodes[statement] = append(votedForStmt2Nodes[statement], node)
@@ -112,12 +112,15 @@ func (n *node) getStatements() (map[string][]string, map[string][]string) {
 			acceptedStmt2Nodes[statement] = append(acceptedStmt2Nodes[statement], node)
 		}
 	}
-	gl.Unlock()
 
 	return votedForStmt2Nodes, acceptedStmt2Nodes
 }
 
-func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, error) {
+func (o *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, error) {
+	gl.Lock()
+	n := deepcopy(o)
+	gl.Unlock()
+
 	if in.Term != n.Term {
 		return &fvp.EmptyMessage{}, nil
 	}
@@ -127,78 +130,44 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 
 	votedForStmt2Nodes, acceptedStmt2Nodes := n.getStatements()
 
-	update := false
-	gl.Lock()
-	votedFor := n.NodesState[n.ID].VotedFor
-	accepted := n.NodesState[n.ID].Accepted
-	confirmed := n.NodesState[n.ID].Confirmed
-	gl.Unlock()
-
 	for stmt, nodes := range votedForStmt2Nodes {
-		if canVote(stmt, votedFor) && canVote(stmt, accepted) && !inArray(votedFor, stmt) {
+		if canVote(stmt, n.NodesState[n.ID].VotedFor) && canVote(stmt, n.NodesState[n.ID].Accepted) && !inArray(n.NodesState[n.ID].VotedFor, stmt) {
 			Log(n.Term, "put", stmt+" voted")
-			votedFor = append(votedFor, stmt)
+			n.NodesState[n.ID].VotedFor = append(n.NodesState[n.ID].VotedFor, stmt)
 			nodes = append(nodes, n.ID)
-			update = true
 		}
-		if !inArray(nodes, n.ID) { // we are not in these nodes
-			continue
-		}
-		if n.checkQuorum(nodes) {
-			if !inArray(accepted, stmt) {
-				Log(n.Term, "put", stmt+" accept")
-				accepted = append(accepted, stmt)
-				update = true
-			}
+
+		if inArray(nodes, n.ID) && n.checkQuorum(nodes) && !inArray(n.NodesState[n.ID].Accepted, stmt) {
+			Log(n.Term, "put", stmt+" accept")
+			n.NodesState[n.ID].Accepted = append(n.NodesState[n.ID].Accepted, stmt)
 		}
 	}
 
 	for stmt, nodes := range acceptedStmt2Nodes {
-		if canVote(stmt, accepted) && canVote(stmt, votedFor) && !inArray(votedFor, stmt) {
+		if canVote(stmt, n.NodesState[n.ID].Accepted) && canVote(stmt, n.NodesState[n.ID].VotedFor) && !inArray(n.NodesState[n.ID].VotedFor, stmt) {
 			Log(n.Term, "put", stmt+" voted")
-			votedFor = append(votedFor, stmt)
-			update = true
+			n.NodesState[n.ID].VotedFor = append(n.NodesState[n.ID].VotedFor, stmt)
 		}
 
-		if !canVote(stmt, accepted) {
+		if !canVote(stmt, n.NodesState[n.ID].Accepted) {
 			// maybe stuck?
 			Log(n.Term, "send", "can't accept "+stmt)
 			continue
 		}
 
-		if !inArray(nodes, n.ID) { // we are not in these nodes
-			continue
-		}
-
-		if n.checkQuorum(nodes) {
-			if !inArray(confirmed, stmt) {
+		if inArray(nodes, n.ID) && n.checkQuorum(nodes) {
+			if !inArray(n.NodesState[n.ID].Confirmed, stmt) {
 				Log(n.Term, "put", stmt+" end")
-				confirmed = append(confirmed, stmt)
+				n.NodesState[n.ID].Confirmed = append(n.NodesState[n.ID].Confirmed, stmt)
 				stmt_pieces := strings.Split(stmt, "=")
 				n.Dictionary[stmt_pieces[0]] = stmt_pieces[1]
-				update = true
 			}
 		} else if n.checkBlocking(nodes) { // assert statement is not in confict with any others we have voted for?
-			if !inArray(accepted, stmt) {
+			if !inArray(n.NodesState[n.ID].Accepted, stmt) {
 				Log(n.Term, "put", stmt+" accept")
-				accepted = append(accepted, stmt)
-				update = true
+				n.NodesState[n.ID].Accepted = append(n.NodesState[n.ID].Accepted, stmt)
 			}
 		}
-	}
-
-	if update {
-		gl.Lock()
-		n.StateCounter++
-		n.NodesState[n.ID] = fvp.SendMsg_State{
-			Id:           n.ID,
-			Accepted:     accepted,
-			VotedFor:     votedFor,
-			Confirmed:    confirmed,
-			QuorumSlices: n.NodesState[n.ID].QuorumSlices,
-			Counter:      n.StateCounter,
-		}
-		gl.Unlock()
 	}
 
 	return &fvp.EmptyMessage{}, nil
@@ -232,16 +201,14 @@ func main() {
 
 	Log(n.Term, "connection", "Listening on "+n.ID)
 
-	ticker := time.NewTicker(time.Duration(n.BroadcastTimeout) * time.Millisecond)
-	go func() {
-		for range ticker.C {
-			// spew.Dump(n.NodesState)
-			if *print {
-				prettyPrintMap(n.NodesState)
-			}
-			n.broadcast()
-		}
-	}()
+	go grpcServer.Serve(lis)
 
-	grpcServer.Serve(lis)
+	ticker := time.NewTicker(time.Duration(n.BroadcastTimeout) * time.Millisecond)
+	for range ticker.C {
+		// spew.Dump(n.NodesState)
+		if *print {
+			prettyPrintMap(n.NodesState)
+		}
+		n.broadcast()
+	}
 }
