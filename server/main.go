@@ -196,7 +196,11 @@ var (
 )
 
 func main() {
-	setupLog(path.Join(os.Getenv("HOME"), "logs", n.ID+".txt"))
+	if n.IsEvil {
+		setupLog(path.Join(os.Getenv("HOME"), "logs", n.ID+".evil"))
+	} else {
+		setupLog(path.Join(os.Getenv("HOME"), "logs", n.ID+".txt"))
+	}
 
 	// setup grpc
 	lis, err := net.Listen("tcp", ":"+strings.Split(n.ID, ":")[1])

@@ -16,7 +16,7 @@ def get_logs(ip_addr, pem_file, log_dir):
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(hostname=ip_addr, username="ec2-user", pkey=pem)
     ftp = client.open_sftp()
-    logs = ftp.listdir('/home/ec2-user/logs/')
+    logs = ftp.listdir('/home/ec2-user/logs/*.txt')
     for l in logs:
         print(l)
         ftp.get(f'/home/ec2-user/logs/{l}', f"{log_dir}/{l}")
