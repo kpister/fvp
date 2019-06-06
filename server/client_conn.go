@@ -6,6 +6,22 @@ import (
 	kv "github.com/kpister/fvp/server/proto/kvstore"
 )
 
+func (n *node) IncrementTerm(ctx context.Context, in *kv.EmptyMessage) (*kv.EmptyMessage, error) {
+	n.Term++
+	ourState := fvp.SendMsg_State{
+		Accepted:     make([]string, 0),
+		Confirmed:    make([]string, 0),
+		VotedFor:     make([]string, 0),
+		Counter:      0,
+		Id:           n.ID,
+		QuorumSlices: n.NodesState[n.ID].QuorumSlices,
+	}
+
+	n.NodesState[n.ID] = ourState
+
+	return &kv.EmptyMessage{}, nil
+}
+
 func (n *node) Get(ctx context.Context, in *kv.GetRequest) (*kv.GetResponse, error) {
 	// lookup in.key in dictionary
 	if val, ok := n.Dictionary[in.Key]; ok {

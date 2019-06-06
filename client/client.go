@@ -69,6 +69,11 @@ func (c *client) MessageGet(connId int, key string) (string, kv.ReturnCode) {
 	return res.Value, res.Ret
 }
 
+func (c *client) MessageIncrementTerm(connId int) {
+	ctx := context.Background()
+	c.kvClients[connId].IncrementTerm(ctx, &kv.EmptyMessage{})
+}
+
 func (c *client) SetupConnection(servAddr string) bool {
 	if c.conn != nil {
 		c.conn.Close()

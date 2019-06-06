@@ -61,6 +61,7 @@ func (n *node) createNode() {
 	n.NodesState[n.ID] = ourState
 
 	n.Dictionary = make(map[string]string, 0)
+	n.Term = 0
 }
 
 func init() {

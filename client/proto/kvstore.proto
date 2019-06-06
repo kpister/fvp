@@ -5,6 +5,7 @@ package kvstore;
 service KeyValueStore {
     rpc Get(GetRequest) returns (GetResponse) {}
     rpc Put(PutRequest) returns (PutResponse) {}
+    rpc IncrementTerm(EmptyMessage) returns (EmptyMessage) {}
 }
 
 // You'll likely need to define more specific return codes than these!
@@ -17,6 +18,8 @@ enum ReturnCode {
     FAILURE_QUORUM = 4;
     SUCCESS_SEQNO = 5;
 }
+
+message EmptyMessage {}
 
 message GetRequest {
     string key = 1;

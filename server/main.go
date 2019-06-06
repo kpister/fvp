@@ -36,6 +36,7 @@ type node struct {
 	IsEvil            bool
 	Strategy          string
 	QsSlices          [][]string // set for cfg file
+	Term              int32
 
 	BroadcastTimeout int
 }
@@ -107,6 +108,10 @@ func (n *node) getStatements() (map[string][]string, map[string][]string) {
 }
 
 func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, error) {
+	if in.Term != n.Term {
+		return &fvp.EmptyMessage{}, nil
+	}
+
 	n.updateStates(in.KnownStates)
 	n.updateQuorumSlices(in.KnownStates)
 

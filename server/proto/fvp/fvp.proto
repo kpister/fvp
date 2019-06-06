@@ -21,6 +21,7 @@ message SendMsg {
     }
 
     repeated State knownStates = 1;
+    int32 term = 2;
 }
 
 message EmptyMessage {}
