@@ -57,7 +57,6 @@ func (n *node) broadcast() {
 
 		// for every neighbor send the message
 
-		gl.Lock()
 		for _, neighbor := range n.NodesAddrs {
 			ctx := context.Background()
 
@@ -66,7 +65,6 @@ func (n *node) broadcast() {
 				n.errorHandler(err, "broadcast", neighbor)
 			}
 		}
-		gl.Unlock()
 
 	} else {
 		n.evilBehavior(n.Strategy)
