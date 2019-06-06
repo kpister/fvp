@@ -69,7 +69,6 @@ if __name__ == '__main__':
         for host, cfg in ips[ip]:
             # copy in needed cfgs
             cmd = f"echo '{cfg}' > /home/ec2-user/cfgs/{host}.json"
-            print(f'Executing: {cmd}')
             client.exec_command(cmd)
 
         cmd = "/home/ec2-user/start.sh\n"

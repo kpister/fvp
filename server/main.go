@@ -27,7 +27,6 @@ import (
  */
 
 type node struct {
-	sync.Mutex
 	ID                string
 	NodesState        map[string]fvp.SendMsg_State // map node id to node state
 	NodesQuorumSlices map[string][][]string        // map node id to quorum slices
@@ -48,17 +47,17 @@ func (n *node) broadcast() {
 
 		// build arguments, list of states
 		ks := make([]*fvp.SendMsg_State, 0)
-		n.Lock()
+		gl.Lock()
 		for _, state := range n.NodesState {
 			temp := state
 			ks = append(ks, &temp)
 		}
-		n.Unlock()
+		gl.Unlock()
 		args := &fvp.SendMsg{KnownStates: ks, Term: n.Term}
 
 		// for every neighbor send the message
 
-		n.Lock()
+		gl.Lock()
 		for _, neighbor := range n.NodesAddrs {
 			ctx := context.Background()
 
@@ -67,7 +66,7 @@ func (n *node) broadcast() {
 				n.errorHandler(err, "broadcast", neighbor)
 			}
 		}
-		n.Unlock()
+		gl.Unlock()
 
 	} else {
 		n.evilBehavior(n.Strategy)
@@ -77,7 +76,7 @@ func (n *node) broadcast() {
 func (n *node) updateStates(states []*fvp.SendMsg_State) {
 	for _, state := range states {
 
-		n.Lock()
+		gl.Lock()
 		if prevState, ok := n.NodesState[state.Id]; !ok {
 			n.NodesState[state.Id] = *state
 			Log(n.Term, "send", "updating state of "+state.Id+" for first time")
@@ -85,7 +84,7 @@ func (n *node) updateStates(states []*fvp.SendMsg_State) {
 			n.NodesState[state.Id] = *state
 			Log(n.Term, "send", "updating state of "+state.Id+" for updated counter")
 		}
-		n.Unlock()
+		gl.Unlock()
 	}
 }
 
@@ -101,7 +100,7 @@ func (n *node) updateQuorumSlices(states []*fvp.SendMsg_State) {
 func (n *node) getStatements() (map[string][]string, map[string][]string) {
 	votedForStmt2Nodes := make(map[string][]string, 0)
 	acceptedStmt2Nodes := make(map[string][]string, 0)
-	n.Lock()
+	gl.Lock()
 	for node, state := range n.NodesState {
 		for _, statement := range state.VotedFor {
 			votedForStmt2Nodes[statement] = append(votedForStmt2Nodes[statement], node)
@@ -113,7 +112,7 @@ func (n *node) getStatements() (map[string][]string, map[string][]string) {
 			acceptedStmt2Nodes[statement] = append(acceptedStmt2Nodes[statement], node)
 		}
 	}
-	n.Unlock()
+	gl.Unlock()
 
 	return votedForStmt2Nodes, acceptedStmt2Nodes
 }
@@ -129,11 +128,11 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 	votedForStmt2Nodes, acceptedStmt2Nodes := n.getStatements()
 
 	update := false
-	n.Lock()
+	gl.Lock()
 	votedFor := n.NodesState[n.ID].VotedFor
 	accepted := n.NodesState[n.ID].Accepted
 	confirmed := n.NodesState[n.ID].Confirmed
-	n.Unlock()
+	gl.Unlock()
 
 	for stmt, nodes := range votedForStmt2Nodes {
 		if canVote(stmt, votedFor) && canVote(stmt, accepted) && !inArray(votedFor, stmt) {
@@ -189,7 +188,7 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 	}
 
 	if update {
-		n.Lock()
+		gl.Lock()
 		n.StateCounter++
 		n.NodesState[n.ID] = fvp.SendMsg_State{
 			Id:           n.ID,
@@ -199,7 +198,7 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 			QuorumSlices: n.NodesState[n.ID].QuorumSlices,
 			Counter:      n.StateCounter,
 		}
-		n.Unlock()
+		gl.Unlock()
 	}
 
 	return &fvp.EmptyMessage{}, nil
@@ -210,6 +209,7 @@ var (
 	configFile = flag.String("config", "cfg.json", "the file to read the configuration from")
 	print      = flag.Bool("print", false, "to print the state")
 	help       = flag.Bool("h", false, "for usage")
+	gl         sync.Mutex
 )
 
 func main() {
