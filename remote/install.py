@@ -1,6 +1,6 @@
 """ Setup
 Usage:
-    install.py <pem-file> <ip-addr>... [options]
+    install.py <pem-file> <ip-file> [options]
 
 Options:
     -h, --help          print help message and exit
@@ -14,6 +14,7 @@ import time
 
 def install(ip_addr, pem_file):
     print(f'Installing {ip_addr}')
+    ip_addr = ip_addr.strip()
     pem = paramiko.RSAKey.from_private_key_file(pem_file)
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -39,7 +40,7 @@ def install(ip_addr, pem_file):
 def main(args):
     args = docopt(__doc__)
 
-    for ip in args['<ip-addr>']:
+    for ip in open(args['<ip-file>']):
         install(ip, args['<pem-file>'])
     print("All servers are being setup, please allow a minute to finish install")
 
