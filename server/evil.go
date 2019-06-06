@@ -101,7 +101,7 @@ func (n *node) evilBehavior(strategy string) {
 				}
 			}
 		} else {
-			Log("broadcast", "Invalid evil strategy")
+			Log(n.Term, "broadcast", "Invalid evil strategy")
 		}
 
 		// prettyPrintMap(n.NodesState)

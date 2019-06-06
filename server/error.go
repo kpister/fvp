@@ -11,16 +11,16 @@ func (n *node) errorHandler(err error, task string, nodeID string) string {
 	case codes.OK:
 		return "conn"
 	case codes.Canceled:
-		Log(task, "msg to "+nodeID+" was dropped (Canceled)")
+		Log(n.Term, task, "msg to "+nodeID+" was dropped (Canceled)")
 		return "dropped"
 	case codes.DeadlineExceeded:
-		Log(task, "msg to "+nodeID+" was dropped (DeadlineExceeded)")
+		Log(n.Term, task, "msg to "+nodeID+" was dropped (DeadlineExceeded)")
 		return "dropped"
 	case codes.Unavailable:
-		Log(task, "conn to "+nodeID+" failed")
+		Log(n.Term, task, "conn to "+nodeID+" failed")
 		return "conn_failed"
 	default:
-		Log(task, "conn to "+nodeID+" failed for unknown reasons")
+		Log(n.Term, task, "conn to "+nodeID+" failed for unknown reasons")
 		return "failed"
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 )
 
 var (
@@ -22,14 +23,14 @@ func check(valid []string, el string) bool {
 // Log requires a specific set of input strings
 // event \in {"vote", "accept", "confirm", "broadcast", "connection", "send"}, is the occuring event
 // msg is general text, which helps debugging
-func Log(event string, msg string) {
+func Log(term int32, event, msg string) {
 	if !check(valid_events, event) {
 		panic("INVALID EVENTS!")
 	}
 
 	// use log package to log the data
 	// timestamp (usec):event:msg
-	log.Printf(event + ":" + msg + "\n")
+	log.Printf(strconv.Itoa((int)(term)) + ":" + event + ":" + msg + "\n")
 }
 
 // Setup the logger to write to a specific file

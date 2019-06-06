@@ -72,10 +72,10 @@ func (n *node) updateStates(states []*fvp.SendMsg_State) {
 
 		if prevState, ok := n.NodesState[state.Id]; !ok {
 			n.NodesState[state.Id] = *state
-			Log("send", "updating state of "+state.Id+" for first time")
+			Log(n.Term, "send", "updating state of "+state.Id+" for first time")
 		} else if state.Counter > prevState.Counter {
 			n.NodesState[state.Id] = *state
-			Log("send", "updating state of "+state.Id+" for updated counter")
+			Log(n.Term, "send", "updating state of "+state.Id+" for updated counter")
 		}
 	}
 }
@@ -124,6 +124,7 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 
 	for stmt, nodes := range votedForStmt2Nodes {
 		if canVote(stmt, votedFor) && canVote(stmt, accepted) && !inArray(votedFor, stmt) {
+			Log(n.Term, "put", stmt+" voted")
 			votedFor = append(votedFor, stmt)
 			nodes = append(nodes, n.ID)
 			update = true
@@ -133,7 +134,7 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 		}
 		if n.checkQuorum(nodes) {
 			if !inArray(accepted, stmt) {
-				Log("put", stmt+" accept")
+				Log(n.Term, "put", stmt+" accept")
 				accepted = append(accepted, stmt)
 				update = true
 			}
@@ -142,13 +143,14 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 
 	for stmt, nodes := range acceptedStmt2Nodes {
 		if canVote(stmt, accepted) && canVote(stmt, votedFor) && !inArray(votedFor, stmt) {
+			Log(n.Term, "put", stmt+" voted")
 			votedFor = append(votedFor, stmt)
 			update = true
 		}
 
 		if !canVote(stmt, accepted) {
 			// maybe stuck?
-			Log("send", "can't accept "+stmt)
+			Log(n.Term, "send", "can't accept "+stmt)
 			continue
 		}
 
@@ -158,12 +160,13 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 
 		if n.checkQuorum(nodes) {
 			if !inArray(confirmed, stmt) {
-				Log("put", stmt+" end")
+				Log(n.Term, "put", stmt+" end")
 				confirmed = append(confirmed, stmt)
 				update = true
 			}
 		} else if n.checkBlocking(nodes) { // assert statement is not in confict with any others we have voted for?
 			if !inArray(accepted, stmt) {
+				Log(n.Term, "put", stmt+" accept")
 				accepted = append(accepted, stmt)
 				update = true
 			}
@@ -198,7 +201,7 @@ func main() {
 	// setup grpc
 	lis, err := net.Listen("tcp", ":"+strings.Split(n.ID, ":")[1])
 	if err != nil {
-		Log("connection", fmt.Sprintf("Failed to listen on the port. %v", err))
+		Log(n.Term, "connection", fmt.Sprintf("Failed to listen on the port. %v", err))
 	}
 
 	grpcServer := grpc.NewServer()
@@ -206,7 +209,7 @@ func main() {
 	kv.RegisterKeyValueStoreServer(grpcServer, &n)
 	n.buildClients()
 
-	Log("connection", "Listening on "+n.ID)
+	Log(n.Term, "connection", "Listening on "+n.ID)
 
 	ticker := time.NewTicker(time.Duration(n.BroadcastTimeout) * time.Millisecond)
 	go func() {

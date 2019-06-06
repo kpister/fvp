@@ -14,11 +14,11 @@ func (n *node) buildClients() {
 
 	for _, addr := range n.NodesAddrs {
 
-		Log("connection", "Connecting to "+addr)
+		Log(n.Term, "connection", "Connecting to "+addr)
 
 		conn, err := grpc.Dial(addr, grpc.WithInsecure())
 		if err != nil {
-			Log("connection", fmt.Sprintf("Failed to connect to %s. %v\n", addr, err))
+			Log(n.Term, "connection", fmt.Sprintf("Failed to connect to %s. %v\n", addr, err))
 		}
 
 		n.NodesFvpClients[addr] = fvp.NewServerClient(conn)

@@ -35,11 +35,11 @@ func (n *node) Put(ctx context.Context, in *kv.PutRequest) (*kv.PutResponse, err
 	// set value in dictionary
 
 	stmt := in.Key + "=" + in.Value
-	Log("put", stmt+" start")
 	votedFor := n.NodesState[n.ID].VotedFor
 	if !canVote(stmt, votedFor) {
 		return &kv.PutResponse{Ret: kv.ReturnCode_FAILURE}, nil
 	}
+	Log(n.Term, "put", stmt+" start")
 
 	n.StateCounter++
 	n.NodesState[n.ID] = fvp.SendMsg_State{
