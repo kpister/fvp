@@ -39,47 +39,43 @@ if __name__ == '__main__':
             ips[ip] = []
         ips[ip].append((f'{ip}:{port}', cfg))
 
+    clients = []
     for ip in ips.keys():
         print(f'Connecting to {ip}')
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(hostname=ip, username="ec2-user", pkey=pem)
+        clients.append(client)
 
+    for i, ip in enumerate(ips.keys()):
+        # kill server
         cmd = f"pkill server"
         print(f'Executing: {cmd}')
-        client.exec_command(cmd)
-        client.close()
-
-    for ip in ips.keys():
-        # connect to server
-        print(f'Connecting to {ip}')
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(hostname=ip, username="ec2-user", pkey=pem)
+        clients[i].exec_command(cmd)
 
         # clear cfgs folder
         cmd = f"rm -f /home/ec2-user/cfgs/*"
         print(f'Executing: {cmd}')
-        client.exec_command(cmd)
+        clients[i].exec_command(cmd)
 
         cmd = f"rm -f /home/ec2-user/logs/*"
         print(f'Executing: {cmd}')
-        client.exec_command(cmd)
+        clients[i].exec_command(cmd)
 
         for host, cfg in ips[ip]:
             # copy in needed cfgs
             cmd = f"echo '{cfg}' > /home/ec2-user/cfgs/{host}.json"
-            client.exec_command(cmd)
+            clients[i].exec_command(cmd)
 
         cmd = "/home/ec2-user/start.sh\n"
 
-        transport = client.get_transport()
+        transport = clients[i].get_transport()
         channel = transport.open_session()
         pty = channel.get_pty()
-        shell = client.invoke_shell()
+        shell = clients[i].invoke_shell()
         shell.send(cmd)
         time.sleep(5)
 
         shell.close()
         channel.close()
-        client.close()
+        clients[i].close()
