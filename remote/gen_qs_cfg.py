@@ -71,7 +71,7 @@ def main():
             qs_sz = random.randint(1, args.max_qs_size)
             _addrs = addrs[:node_i] + addrs[node_i+1:]
             random.shuffle(_addrs)
-            qs = _addrs[:qs_sz]
+            qs = _addrs[:qs_sz] + [addrs[node_i]]
             node_qs_cfg["QsSlices"].append(qs)
 
         args.output_qs_cfg.write(addrs[node_i] + "~" + json.dumps(node_qs_cfg) + "\n")
