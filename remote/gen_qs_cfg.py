@@ -22,7 +22,7 @@ def main():
     parser.add_argument("ip_file", metavar="ip_file", type=argparse.FileType("r"), help="A list of instances' IP addresses")
     parser.add_argument("output_qs_cfg", metavar="qs_cfg", type=argparse.FileType("w"), help="Output config path")
     parser.add_argument("-m","--max_n", metavar="max_n", nargs="?", default=5, type=int, help="Max number of servers per instance")
-    parser.add_argument("-f", "--failure_type", metavar="failure_type", nargs="?", default="random", type=str, help="The type of failure")
+    parser.add_argument("-f", "--failure_type", metavar="failure_type", nargs="?", default="random_value", type=str, help="The type of failure")
     parser.add_argument("-e", "--evil_prob", metavar="evil_prob", nargs="?", default=0, type=int, help="Probability to be evil")
     parser.add_argument("-mqn", "--max_n_qs", metavar="max_n_qs", nargs="?", default=1, type=int, help="Max number of quorum slices")
     parser.add_argument("-mqsz", "--max_qs_size", metavar="max_qs_size", nargs="?", default=3, type=int, help="Max size of quorum slice")
@@ -35,8 +35,8 @@ def main():
     if args.max_n < 1:
         raise Exception("Max size cannot be less than 1")
 
-    if not args.failure_type in ["STOP", "RAND_PUT", "RAND_ALL", "random"]:
-        raise Exception("Failure type should be STOP, RAND_PUT, or RAND_ALL")
+    if not args.failure_type in ["stop", "random_value", "random_key"]:
+        raise Exception("Failure type should be stop, random_value, or random_key")
 
     if args.evil_prob < 0 or args.evil_prob > 100:
         raise Exception("Evil probability should be within [0, 100]")

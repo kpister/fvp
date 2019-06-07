@@ -23,19 +23,19 @@ func (n *node) evilBehavior(strategy string) {
 				QuorumSlices: n.NodesState[n.ID].QuorumSlices,
 				Counter:      n.StateCounter,
 			}
-		} else if strategy == "random" {
+		} else if strategy == "random_value" {
 			// TODO genarate ranodm quorum slice
 			randVotedFor := make([]string, 0)
 			randAccepted := make([]string, 0)
 			for _, stmt := range n.NodesState[n.ID].VotedFor {
 				key := strings.Split(stmt, "=")[0]
-				value := rand.Int() % 10
-				randVotedFor = append(randVotedFor, key+"="+strconv.Itoa(value))
+				value := rand.Int() % 3
+				randVotedFor = append(randVotedFor, key+"="+"val"+strconv.Itoa(value))
 			}
 			for _, stmt := range n.NodesState[n.ID].Accepted {
 				key := strings.Split(stmt, "=")[0]
-				value := rand.Int() % 10
-				randAccepted = append(randAccepted, key+"="+strconv.Itoa(value))
+				value := rand.Int() % 3
+				randAccepted = append(randAccepted, key+"="+"val"+strconv.Itoa(value))
 			}
 
 			fakestate = fvp.SendMsg_State{
@@ -46,6 +46,32 @@ func (n *node) evilBehavior(strategy string) {
 				QuorumSlices: n.NodesState[n.ID].QuorumSlices,
 				Counter:      n.StateCounter,
 			}
+		} else if strategy == "random_key" {
+			// kinda DDos the network.
+			randVotedFor := make([]string, 0)
+			randAccepted := make([]string, 0)
+
+			// generate 5 random key values
+			for i := 0; i < 5; i++ {
+				randKey := "key" + strconv.Itoa(rand.Int())
+				randVotedFor = append(randVotedFor, randKey+"="+"val0")
+				randKey = "key" + strconv.Itoa(rand.Int())
+				randAccepted = append(randAccepted, randKey+"="+"val0")
+			}
+
+			fakestate = fvp.SendMsg_State{
+				Id:           n.ID,
+				Accepted:     randAccepted,
+				VotedFor:     randVotedFor,
+				Confirmed:    []string{},
+				QuorumSlices: n.NodesState[n.ID].QuorumSlices,
+				Counter:      n.StateCounter,
+			}
+
+		} else if strategy == "stop" {
+			// do nothing and return
+			return
+
 		} else if strategy == "tc3" {
 			if addr == "localhost:8001" || addr == "localhost:8002" {
 				// send a=1 to one half

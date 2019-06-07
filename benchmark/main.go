@@ -40,6 +40,7 @@ var (
 	cfgFile  = flag.String("cfgFile", "", "config file")
 	nRequest = flag.Int("nRequest", 5, "number of puts per term")
 	nTerm    = flag.Int("nTerm", 100, "number of terms")
+	delay    = flag.Int("delay", 2, "delay between terms in seconds")
 )
 
 func readConfig(cfgPath string) []string {
@@ -68,7 +69,7 @@ func main() {
 	for term := 0; term < *nTerm; term++ {
 		seqNumber = measurePut(*nRequest, clients[0], seqNumber)
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(time.Duration(*delay) * time.Second)
 		for i := 0; i < len(ips); i++ {
 			clients[i].MessageIncrementTerm(0)
 		}
