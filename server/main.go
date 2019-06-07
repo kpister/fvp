@@ -166,11 +166,7 @@ func (n *node) Send(ctx context.Context, in *fvp.SendMsg) (*fvp.EmptyMessage, er
 			continue
 		}
 
-		if !inArray(nodes, n.ID) { // we are not in these nodes
-			continue
-		}
-
-		if n.checkQuorum(nodes) {
+		if inArray(nodes, n.ID) && n.checkQuorum(nodes) {
 			if !inArray(confirmed, stmt) {
 				Log(n.Term, "put", stmt+" end")
 				confirmed = append(confirmed, stmt)
