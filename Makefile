@@ -10,8 +10,10 @@ build:
 	go build -o monitor/monitor github.com/kpister/fvp/monitor
 	go build -o server/server github.com/kpister/fvp/server
 	go build -o client/client github.com/kpister/fvp/client
+	go build -o benchmark/benchmark github.com/kpister/fvp/benchmark
 
 fmt:
 	go fmt github.com/kpister/fvp/monitor
 	go fmt github.com/kpister/fvp/client
 	go fmt github.com/kpister/fvp/server
+	go fmt github.com/kpister/fvp/benchmark
